@@ -1,0 +1,23 @@
+# Local PostgreSQL for development and tests.
+# Start: npm run db:up   Stop: npm run db:down
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: industrialink-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: industrialink
+      POSTGRES_PASSWORD: industrialink
+      POSTGRES_DB: industrialink
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U industrialink']
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

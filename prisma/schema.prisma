@@ -1,0 +1,591 @@
+// IndustriaLink database schema.
+//
+// Conventions
+// - Table names are snake_case (@@map); columns stay camelCase, like the API.
+// - IDs are UUIDs. Every table has createdAt; tables that change have updatedAt.
+// - Enums only for fixed states the code makes decisions on (role, status, stage...).
+// - Catalogue values that will grow (trade, sector, document type, benefits...) are
+//   plain text, checked by the API. Adding a new trade needs no migration.
+// - Files are stored as a storage key, never a full URL.
+// - Counts (applicants, unread...) are calculated, not stored.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum Role {
+  worker
+  employer
+  admin
+}
+
+enum AccountStatus {
+  active
+  pending
+  blocked
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum JobStatus {
+  draft
+  active
+  closed
+}
+
+enum ApplicationStage {
+  applied
+  shortlisted
+  interview
+  offer
+  hired
+  rejected
+  withdrawn
+}
+
+/// Timeline entries: every stage plus "viewed" (employer opened the application).
+enum TimelineEventType {
+  applied
+  shortlisted
+  interview
+  offer
+  hired
+  rejected
+  withdrawn
+  viewed
+}
+
+enum ApplyMethod {
+  profile
+  document
+}
+
+enum InterviewResponse {
+  attending
+  cant_attend
+}
+
+enum OfferResponse {
+  accepted
+  declined
+}
+
+enum ReportStatus {
+  open
+  dismissed
+  job_removed
+}
+
+enum TicketStatus {
+  open
+  closed
+}
+
+// ───────────────────── Accounts and login ─────────────────────
+
+/// Everyone who can log in. Workers usually have a phone, employers and admins an email.
+/// The login method is not decided yet, so phone, email and passwordHash are all optional.
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  role         Role
+  name         String
+  phone        String?       @unique /// +91XXXXXXXXXX
+  email        String?       @unique /// always lowercase
+  passwordHash String?
+  status       AccountStatus @default(active)
+  onboarded    Boolean       @default(false)
+  /// Employer users belong to a company. Several HR users can share one company later.
+  companyId    String?       @db.Uuid
+  lastLoginAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  company             Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  settings            UserSettings?
+  workerProfile       WorkerProfile?
+  jobsCreated         Job[]
+  timelineEvents      ApplicationEvent[]
+  invitesSent         Invite[]
+  messagesSent        Message[]
+  notifications       Notification[]
+  reportsMade         JobReport[]          @relation("ReportReporter")
+  reportsResolved     JobReport[]          @relation("ReportResolver")
+  supportTickets      SupportTicket[]
+  auditLogs           AuditLog[]
+
+  @@index([role, status])
+  @@index([companyId])
+  @@map("users")
+}
+
+/// One row per login. The token carries the session id, so logout and blocking
+/// take effect immediately by setting revokedAt.
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ip         String?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Phone OTP codes (used once an SMS provider is chosen). The code is stored hashed.
+model OtpCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@map("otp_codes")
+}
+
+/// Forgot-password links. The token is stored hashed and can be used once.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model UserSettings {
+  userId             String   @id @db.Uuid
+  language           String   @default("en") /// en | hi | or
+  jobAlerts          Boolean  @default(true)
+  smsAlerts          Boolean  @default(false)
+  whatsappAlerts     Boolean  @default(false)
+  /// Worker only: employers can find this profile in "Find workers".
+  visibleToEmployers Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ───────────────────────── Worker ─────────────────────────
+
+model WorkerProfile {
+  userId              String    @id @db.Uuid
+  trade               String? /// welder | electrician | fitter | ...
+  experience          String? /// fresher | 1_2 | 3_5 | 5_plus
+  qualifications      String[] /// e.g. ITI, 10th
+  licences            String[] /// e.g. HMV, DGMS
+  skills              String[]
+  languages           String[]
+  city                String?
+  state               String?
+  address             String?
+  pincode             String?
+  willingToRelocate   Boolean   @default(false)
+  expectedPay         Int? /// rupees per month
+  shiftPreference     String? /// day | night | rotational | any
+  availability        String    @default("immediate") /// immediate | 15_days | 30_days
+  employmentType      String? /// permanent | contract | any
+  about               String?
+  dob                 DateTime? @db.Date
+  gender              String? /// male | female | other
+  safetyTrainingHours Int?
+  photoKey            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workHistory  WorkHistory[]
+  documents    WorkerDocument[]
+  savedJobs    SavedJob[]
+  applications Application[]
+  invites      Invite[]
+
+  @@index([trade, city])
+  @@map("worker_profiles")
+}
+
+/// Past jobs. Many workers have no resume, so this is their work record.
+model WorkHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  workerId  String   @db.Uuid
+  company   String
+  role      String
+  fromYear  Int
+  toYear    Int? /// empty = still working there
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  worker WorkerProfile @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+
+  @@index([workerId])
+  @@map("work_history")
+}
+
+model WorkerDocument {
+  id              String   @id @default(uuid()) @db.Uuid
+  workerId        String   @db.Uuid
+  type            String /// resume | id_proof | iti_diploma | trade_licence | driving_licence | ...
+  name            String /// original file name
+  storageKey      String
+  sizeBytes       Int
+  mimeType        String
+  isDefaultResume Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  worker       WorkerProfile @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+  applications Application[]
+
+  @@index([workerId])
+  @@map("worker_documents")
+}
+
+// ───────────────────────── Company ─────────────────────────
+
+model Company {
+  id              String             @id @default(uuid()) @db.Uuid
+  name            String
+  sector          String? /// mining | metals | shipping | petroleum | logistics | automotive
+  size            String? /// e.g. 50–200
+  city            String?
+  state           String?
+  address         String?
+  pincode         String?
+  website         String?
+  gstNumber       String?
+  about           String?
+  hrName          String?
+  hrDesignation   String?
+  hrPhone         String? /// never shown publicly
+  sites           String[] /// plants / sites, quick picks when posting a job
+  hiringType      String? /// direct | agency
+  logoKey         String?
+  /// Only admin-approved companies can show jobs to workers.
+  verification    VerificationStatus @default(pending)
+  rejectionReason String?
+  verifiedAt      DateTime?
+  status          AccountStatus      @default(active)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  members   User[]
+  documents CompanyDocument[]
+  jobs      Job[]
+  invites   Invite[]
+
+  @@index([verification])
+  @@map("companies")
+}
+
+/// Proof uploaded by the employer for admin approval. Only admins see it.
+model CompanyDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @db.Uuid
+  type       String /// gst | udyam | cin | other
+  name       String
+  storageKey String
+  sizeBytes  Int
+  mimeType   String
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_documents")
+}
+
+// ─────────────────────── Jobs and hiring ───────────────────────
+
+model Job {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String    @db.Uuid
+  createdById      String?   @db.Uuid
+  title            String
+  trade            String
+  sector           String
+  jobType          String    @default("full_time") /// full_time | contract | walk_in
+  contractLength   String? /// contract jobs, e.g. 6 months
+  shift            String    @default("day") /// day | night | rotational
+  workHours        String? /// e.g. 8 hours, 6 days a week
+  payMin           Int?
+  payMax           Int?
+  payPeriod        String    @default("month") /// day | month
+  payType          String? /// in_hand | ctc
+  openings         Int       @default(1)
+  experience       String    @default("fresher")
+  qualifications   String[]
+  licences         String[]
+  benefits         String[] /// food | stay | transport | pf_esi | overtime | hazard_pay
+  responsibilities String[]
+  requirements     String[]
+  city             String
+  state            String
+  siteName         String?
+  address          String?
+  pincode          String?
+  /// Walk-in details: { date, endDate, time, endTime, address, contactPerson, bring }
+  walkIn           Json?
+  /// HR number. Workers see it only after shortlisting, and only if allowCalls is on.
+  hrPhone          String?
+  allowCalls       Boolean   @default(false)
+  callHours        String?
+  status           JobStatus @default(draft)
+  postedAt         DateTime? /// first time it went active
+  deadline         DateTime? @db.Date
+  removedByAdmin   Boolean   @default(false)
+  removedReason    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  savedBy      SavedJob[]
+  applications Application[]
+  invites      Invite[]
+  reports      JobReport[]
+
+  @@index([status, city])
+  @@index([status, trade])
+  @@index([companyId])
+  @@map("jobs")
+}
+
+model SavedJob {
+  workerId  String   @db.Uuid
+  jobId     String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  worker WorkerProfile @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+  job    Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([workerId, jobId])
+  @@map("saved_jobs")
+}
+
+model Application {
+  id            String           @id @default(uuid()) @db.Uuid
+  jobId         String           @db.Uuid
+  workerId      String           @db.Uuid
+  stage         ApplicationStage @default(applied)
+  sentWith      ApplyMethod      @default(profile)
+  documentId    String?          @db.Uuid
+  seenAt        DateTime? /// first time the employer opened it
+  /// Private reason for "not suitable". Never sent to the worker.
+  rejectionNote String?
+  offerResponse OfferResponse?
+  createdAt     DateTime         @default(now()) /// = applied at
+  updatedAt     DateTime         @updatedAt
+
+  job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker    WorkerProfile      @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+  document  WorkerDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  events    ApplicationEvent[]
+  interview Interview?
+  offer     Offer?
+  messages  Message[]
+
+  @@unique([jobId, workerId]) /// one application per job
+  @@index([workerId])
+  @@index([jobId, stage])
+  @@map("applications")
+}
+
+/// The application timeline (applied, viewed, shortlisted...).
+model ApplicationEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  applicationId String            @db.Uuid
+  type          TimelineEventType
+  note          String?
+  /// Private notes are only for the employer.
+  isPrivate     Boolean           @default(false)
+  byUserId      String?           @db.Uuid
+  createdAt     DateTime          @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  byUser      User?       @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+  @@map("application_events")
+}
+
+model Interview {
+  applicationId String             @id @db.Uuid
+  at            DateTime
+  place         String
+  contactPerson String?
+  bring         String? /// e.g. Aadhaar, ITI certificate
+  response      InterviewResponse?
+  responseNote  String?
+  respondedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("interviews")
+}
+
+model Offer {
+  applicationId String   @id @db.Uuid
+  pay           Int
+  payPeriod     String /// day | month
+  payType       String? /// in_hand | ctc
+  joiningDate   DateTime @db.Date
+  place         String
+  note          String?
+  sentAt        DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("offers")
+}
+
+/// Employer invited a worker (from "Find workers") to apply for a job.
+model Invite {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  jobId       String   @db.Uuid
+  workerId    String   @db.Uuid
+  invitedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job       Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker    WorkerProfile @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+  invitedBy User?         @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([jobId, workerId])
+  @@index([workerId])
+  @@map("invites")
+}
+
+// ─────────────────────── Communication ───────────────────────
+
+/// Chat between the worker and the employer of one application.
+model Message {
+  id            String    @id @default(uuid()) @db.Uuid
+  applicationId String    @db.Uuid
+  senderId      String    @db.Uuid
+  text          String
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ─────────────────────── Admin and safety ───────────────────────
+
+model JobReport {
+  id           String       @id @default(uuid()) @db.Uuid
+  jobId        String       @db.Uuid
+  reporterId   String?      @db.Uuid
+  reason       String /// asks_money | fake | wrong_details | unsafe | other
+  details      String?
+  status       ReportStatus @default(open)
+  resolvedById String?      @db.Uuid
+  resolvedAt   DateTime?
+  resolvedNote String?
+  createdAt    DateTime     @default(now())
+
+  job        Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reporter   User? @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  resolvedBy User? @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([jobId])
+  @@map("job_reports")
+}
+
+/// Help requests. Guests (not logged in) can also send one.
+model SupportTicket {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String?      @db.Uuid
+  name      String
+  contact   String
+  role      String /// worker | employer | admin | guest
+  topic     String
+  message   String
+  status    TicketStatus @default(open)
+  closedAt  DateTime?
+  createdAt DateTime     @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+/// Every admin action is recorded here.
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String /// e.g. company.approve, user.block, job.remove
+  targetType String /// e.g. company, user, job
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
+/// Single row (id = 1) with platform-wide switches for admins.
+model PlatformSettings {
+  id                   Int      @id @default(1)
+  autoApproveCompanies Boolean  @default(false)
+  messagingEnabled     Boolean  @default(true)
+  talentSearchEnabled  Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+
+  @@map("platform_settings")
+}
