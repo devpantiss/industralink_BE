@@ -1,16 +1,13 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { singleFileUpload } from '../files/upload.js';
 import * as company from './company.controller.js';
 
-/** Everything under /api/v1/employer. Employers only. */
-export const employerRouter = Router();
+/** Mounted at /api/v1/employer/company (employers only, see routes.ts). */
+export const companyRouter = Router();
 
-employerRouter.use(requireAuth, requireRole('employer'));
+companyRouter.get('/', company.getCompany);
+companyRouter.patch('/', company.updateCompany);
 
-employerRouter.get('/company', company.getCompany);
-employerRouter.patch('/company', company.updateCompany);
-
-employerRouter.get('/company/documents', company.listDocuments);
-employerRouter.post('/company/documents', singleFileUpload, company.uploadDocument);
-employerRouter.delete('/company/documents/:id', company.deleteDocument);
+companyRouter.get('/documents', company.listDocuments);
+companyRouter.post('/documents', singleFileUpload, company.uploadDocument);
+companyRouter.delete('/documents/:id', company.deleteDocument);

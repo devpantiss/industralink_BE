@@ -9,6 +9,12 @@ const emptyToNull = (value: unknown) => {
   return trimmed === '' ? null : trimmed;
 };
 
+/** For query strings: an empty value means "not set". */
+export const blankToUndefined = (value: unknown) => (value === '' || value === null ? undefined : value);
+
+/** Query string flag: "true" = on, anything else = off. */
+export const queryFlag = z.preprocess((value) => value === true || value === 'true', z.boolean()).optional();
+
 /** Optional text field that can be cleared with "" or null. */
 export const optionalText = (max: number) =>
   z.preprocess(emptyToNull, z.string().max(max, `Keep this under ${max} characters.`).nullable()).optional();

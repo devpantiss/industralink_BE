@@ -43,3 +43,9 @@ export function toCompanyDocumentDto(doc: CompanyDocument) {
     url: fileUrl(doc.storageKey),
   };
 }
+
+/** The company as workers see it: no GST number, no HR mobile, no admin notes. */
+export function toPublicCompanyDto(company: Company) {
+  const { gstNumber: _gst, hrPhone: _phone, rejectionReason: _reason, ...rest } = toCompanyDto(company);
+  return rest;
+}

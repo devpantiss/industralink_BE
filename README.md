@@ -47,6 +47,8 @@ src/modules/<feature>/   routes → controller → service (+ schemas, mapper)
 tests/                   API tests
 ```
 
+Who may call what is set in one place: `src/routes.ts`.
+
 Rules: routes only wire URLs; controllers read the request and reply; services hold the logic and
 database calls; mappers decide which fields leave the API.
 

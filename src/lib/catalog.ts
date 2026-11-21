@@ -17,7 +17,16 @@ export const TRADES = [
 
 export const SECTORS = ['mining', 'metals', 'shipping', 'petroleum', 'logistics', 'automotive'] as const;
 export const EXPERIENCE = ['fresher', '1_2', '3_5', '5_plus'] as const;
-export const SHIFT_PREFERENCES = ['day', 'night', 'rotational', 'any'] as const;
+export const SHIFTS = ['day', 'night', 'rotational'] as const;
+export const SHIFT_PREFERENCES = [...SHIFTS, 'any'] as const;
+export const PAY_PERIODS = ['day', 'month'] as const;
+export const PAY_TYPES = ['in_hand', 'ctc'] as const;
+export const JOB_TYPES = ['full_time', 'contract', 'walk_in'] as const;
+export const JOB_STATUSES = ['draft', 'active', 'closed'] as const;
+export const BENEFITS = ['food', 'stay', 'transport', 'pf_esi', 'overtime', 'hazard_pay'] as const;
+
+/** Working days used to compare daily pay with monthly pay. */
+export const WORKING_DAYS_PER_MONTH = 26;
 export const AVAILABILITY = ['immediate', '15_days', '30_days'] as const;
 export const EMPLOYMENT_TYPES = ['permanent', 'contract', 'any'] as const;
 export const GENDERS = ['male', 'female', 'other'] as const;

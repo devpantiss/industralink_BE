@@ -70,3 +70,40 @@ export const pathOf = (url: string) => {
   const parsed = new URL(url);
   return parsed.pathname + parsed.search;
 };
+
+/** A short random word, to find only the jobs a test created. */
+export const uniqueWord = () => `zq${randomDigits(8)}`;
+
+/** A job form that is ready to publish. */
+export const jobInput = (overrides: Record<string, unknown> = {}) => ({
+  title: 'Welder (ITI)',
+  trade: 'welder',
+  sector: 'metals',
+  location: { city: 'Rourkela', state: 'Odisha' },
+  payMin: 18000,
+  payMax: 22000,
+  payPeriod: 'month',
+  openings: 4,
+  qualifications: ['ITI'],
+  benefits: ['food', 'stay'],
+  status: 'active',
+  ...overrides,
+});
+
+/** Creates a job straight in the database (for cases the API would refuse). */
+export function createJobInDb(companyId: string, data: Record<string, unknown> = {}) {
+  return prisma.job.create({
+    data: {
+      companyId,
+      title: 'Test job',
+      trade: 'helper',
+      sector: 'metals',
+      city: 'Cuttack',
+      state: 'Odisha',
+      payMin: 15000,
+      status: 'active',
+      postedAt: new Date(),
+      ...data,
+    },
+  });
+}

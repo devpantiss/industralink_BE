@@ -1,17 +1,14 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { singleFileUpload } from '../files/upload.js';
 import * as worker from './worker.controller.js';
 
-/** Everything under /api/v1/worker. Workers only. */
-export const workerRouter = Router();
+/** Mounted at /api/v1/worker (workers only, see routes.ts). */
+export const workerProfileRouter = Router();
 
-workerRouter.use(requireAuth, requireRole('worker'));
+workerProfileRouter.get('/profile', worker.getProfile);
+workerProfileRouter.patch('/profile', worker.updateProfile);
 
-workerRouter.get('/profile', worker.getProfile);
-workerRouter.patch('/profile', worker.updateProfile);
-
-workerRouter.get('/documents', worker.listDocuments);
-workerRouter.post('/documents', singleFileUpload, worker.uploadDocument);
-workerRouter.delete('/documents/:id', worker.deleteDocument);
-workerRouter.post('/documents/:id/default', worker.setDefaultResume);
+workerProfileRouter.get('/documents', worker.listDocuments);
+workerProfileRouter.post('/documents', singleFileUpload, worker.uploadDocument);
+workerProfileRouter.delete('/documents/:id', worker.deleteDocument);
+workerProfileRouter.post('/documents/:id/default', worker.setDefaultResume);

@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
 import * as admin from './admin.controller.js';
 
-/** Everything under /api/v1/admin. Admins only. */
-export const adminRouter = Router();
+/** Mounted at /api/v1/admin/verifications (admins only, see routes.ts). */
+export const verificationRouter = Router();
 
-adminRouter.use(requireAuth, requireRole('admin'));
+verificationRouter.get('/', admin.listVerifications);
+verificationRouter.post('/:kind/:id', admin.decideVerification);
 
-adminRouter.get('/verifications', admin.listVerifications);
-adminRouter.post('/verifications/:kind/:id', admin.decideVerification);
+/** Mounted at /api/v1/admin/jobs (admins only). */
+export const adminJobsRouter = Router();
+
+adminJobsRouter.get('/', admin.listJobs);
+adminJobsRouter.post('/:id/remove', admin.removeJob);
