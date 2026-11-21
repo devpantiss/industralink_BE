@@ -12,6 +12,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   SESSION_DAYS: z.coerce.number().int().positive().default(30),
+  /** Address where this API is reachable; used to build file links. */
+  PUBLIC_URL: z.url().optional(),
+  /** Folder for uploaded files while files are stored on this server's disk. */
+  UPLOAD_DIR: z.string().min(1).default('uploads'),
   CORS_ORIGINS: z
     .string()
     .default('')
@@ -32,6 +36,7 @@ if (!parsed.success) {
 
 export const env = {
   ...parsed.data,
+  PUBLIC_URL: (parsed.data.PUBLIC_URL ?? `http://localhost:${parsed.data.PORT}`).replace(/\/$/, ''),
   isProduction: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
 };

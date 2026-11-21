@@ -10,3 +10,7 @@ src/generated
 
 .DS_Store
 *.log
+
+# Uploaded files (local storage)
+uploads
+.test-uploads

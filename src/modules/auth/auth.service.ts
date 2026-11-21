@@ -1,5 +1,6 @@
 import { prisma } from '../../db/prisma.js';
 import { notFound } from '../../lib/errors.js';
+import { toUserDto } from '../users/user.mapper.js';
 import type { DevLoginInput } from './auth.schemas.js';
 import { startSession, type SessionMeta } from './session.service.js';
 
@@ -26,4 +27,10 @@ export async function listDevUsers() {
     select: { id: true, role: true, name: true, email: true, phone: true, status: true },
     orderBy: [{ role: 'asc' }, { name: 'asc' }],
   });
+}
+
+/** The worker or employer finished the welcome steps. */
+export async function completeOnboarding(userId: string) {
+  const user = await prisma.user.update({ where: { id: userId }, data: { onboarded: true } });
+  return toUserDto(user);
 }

@@ -1,4 +1,5 @@
 import type { User } from '../../generated/prisma/client.js';
+import { toNationalPhone } from '../../lib/phone.js';
 
 /** The user as the apps see it (matches `User` in the dashboard types). */
 export interface UserDto {
@@ -19,7 +20,7 @@ export function toUserDto(user: User): UserDto {
     id: user.id,
     role: user.role,
     name: user.name,
-    phone: user.phone ?? undefined,
+    phone: toNationalPhone(user.phone),
     email: user.email ?? undefined,
     status: user.status,
     onboarded: user.onboarded,

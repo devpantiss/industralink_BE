@@ -62,7 +62,7 @@ describe('dev login', () => {
   it('logs in a worker by phone in any common format', async () => {
     const res = await request(app).post('/api/v1/auth/dev-login').send({ phone: '98765 43210' });
     expect(res.status).toBe(200);
-    expect(res.body.user).toMatchObject({ role: 'worker', phone: '+919876543210' });
+    expect(res.body.user).toMatchObject({ role: 'worker', phone: '9876543210' });
   });
 
   it('rejects a body with zero or two identifiers (422)', async () => {

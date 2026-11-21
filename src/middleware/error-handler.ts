@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { Prisma } from '../generated/prisma/client.js';
 import { AppError } from '../lib/errors.js';
@@ -18,6 +19,15 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     const field = issue?.path.join('.');
     const message = issue ? (field ? `${field}: ${issue.message}` : issue.message) : 'Invalid data.';
     res.status(422).json({ message, code: 'VALIDATION_ERROR' });
+    return;
+  }
+
+  if (err instanceof MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ message: 'File is too big. Max size is 5 MB.', code: 'TOO_BIG' });
+    } else {
+      res.status(400).json({ message: 'Send one file in a field called "file".', code: 'BAD_UPLOAD' });
+    }
     return;
   }
 
