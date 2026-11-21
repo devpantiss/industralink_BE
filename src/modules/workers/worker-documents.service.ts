@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma.js';
-import { AppError, notFound } from '../../lib/errors.js';
+import { AppError, invalid, notFound } from '../../lib/errors.js';
 import { deleteFile } from '../files/storage.js';
 import { storeDocument } from '../files/upload.js';
 import { toWorkerDocumentDto } from './worker.mapper.js';
@@ -71,7 +71,7 @@ export async function setDefaultResume(userId: string, documentId: string) {
   const doc = await prisma.workerDocument.findFirst({ where: { id: documentId, workerId: userId } });
   if (!doc) throw notFound('Document not found.');
   if (doc.type !== 'resume') {
-    throw new AppError(422, 'NOT_RESUME', 'Only a resume can be set as your main resume.');
+    throw invalid('Only a resume can be set as your main resume.', 'NOT_RESUME');
   }
 
   await prisma.$transaction([

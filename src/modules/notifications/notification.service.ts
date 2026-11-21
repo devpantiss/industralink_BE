@@ -1,5 +1,4 @@
-import { prisma } from '../../db/prisma.js';
-import type { Db } from '../../db/types.js';
+import { type Db, prisma } from '../../db/prisma.js';
 
 export interface NewNotification {
   userId: string;

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { COMPANY_DOC_TYPES, HIRING_TYPES, SECTORS } from '../../lib/catalog.js';
 import {
+  blankToUndefined,
   optionalChoice,
   optionalLocation,
   optionalPhone,
@@ -46,4 +47,10 @@ export type UpdateCompanyInput = z.infer<typeof updateCompanySchema>;
 
 export const uploadCompanyDocumentSchema = z.object({
   type: z.enum(COMPANY_DOC_TYPES, 'Choose what kind of document this is.').default('gst'),
+});
+
+/** GET /companies (workers browsing companies). */
+export const companyDirectorySchema = z.object({
+  q: z.preprocess(blankToUndefined, z.string().trim().max(100).optional()),
+  sector: z.preprocess(blankToUndefined, z.enum(SECTORS).optional()),
 });

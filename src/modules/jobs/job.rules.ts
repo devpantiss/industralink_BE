@@ -1,8 +1,6 @@
 import type { Company } from '../../generated/prisma/client.js';
 import { todayInIndia } from '../../lib/dates.js';
-import { AppError, forbidden } from '../../lib/errors.js';
-
-const invalid = (message: string) => new AppError(422, 'VALIDATION_ERROR', message);
+import { forbidden, invalid } from '../../lib/errors.js';
 
 /** The job as it will be after the change: only the fields the rules look at. */
 export interface JobRuleState {

@@ -110,16 +110,3 @@ export const jobSearchSchema = z.object({
 });
 
 export type JobSearchInput = z.infer<typeof jobSearchSchema>;
-
-export const adminJobListSchema = z.object({
-  q: z.preprocess(blankToUndefined, z.string().trim().max(100).optional()),
-  status: z.preprocess(blankToUndefined, z.enum(['active', 'closed']).optional()),
-});
-
-export const removeJobSchema = z.object({
-  reason: z
-    .string('Please give a reason for removing this job.')
-    .trim()
-    .min(3, 'Please give a reason for removing this job.')
-    .max(500),
-});

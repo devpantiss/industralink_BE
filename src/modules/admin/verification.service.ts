@@ -6,7 +6,7 @@ import { toNationalPhone } from '../../lib/phone.js';
 import { fileUrl } from '../files/storage.js';
 import { notify } from '../notifications/notification.service.js';
 import { recordAudit } from './audit.service.js';
-import type { DecideVerificationInput } from './verification.schemas.js';
+import type { DecideVerificationInput } from './admin.schemas.js';
 
 type CompanyForReview = Company & { members: User[]; documents: CompanyDocument[] };
 

@@ -25,4 +25,7 @@ export const forbidden = (message = 'You do not have access to this.', code = 'F
 
 export const notFound = (message = 'Not found.', code = 'NOT_FOUND') => new AppError(404, code, message);
 
+/** Input that is well-formed but breaks a rule (e.g. min pay above max pay). */
+export const invalid = (message: string, code = 'VALIDATION_ERROR') => new AppError(422, code, message);
+
 export const conflict = (message: string, code = 'EXISTS') => new AppError(409, code, message);

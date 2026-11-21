@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from './middleware/auth.js';
-import { accountRouter } from './modules/account/account.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
 import { adminJobsRouter, adminUsersRouter, verificationRouter } from './modules/admin/admin.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { companyDirectoryRouter } from './modules/companies/company-directory.routes.js';
@@ -10,7 +10,7 @@ import {
   publicJobsRouter,
   savedJobsRouter,
   workerJobsRouter,
-} from './modules/jobs/jobs.routes.js';
+} from './modules/jobs/job.routes.js';
 import { workerProfileRouter } from './modules/workers/worker.routes.js';
 
 /**
@@ -28,7 +28,7 @@ apiRouter.use('/public/jobs', publicJobsRouter);
 // Any logged-in user.
 const me = Router();
 me.use(requireAuth);
-me.use('/', accountRouter);
+me.use('/', settingsRouter);
 apiRouter.use('/me', me);
 
 // Workers.

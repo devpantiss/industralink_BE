@@ -1,0 +1,11 @@
+{
+  // Hide build output and generated code from the file tree and search.
+  // They are rebuilt by `npm run build` / `prisma generate` and are not in git.
+  "files.exclude": {
+    "dist": true,
+    "coverage": true,
+    "src/generated": true,
+    "uploads": true,
+    ".test-uploads": true
+  }
+}

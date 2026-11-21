@@ -1,14 +1,18 @@
 import type { Request, Response } from 'express';
-import { z } from 'zod';
 import { notFound } from '../../lib/errors.js';
 import { parseId } from '../../lib/validation.js';
 import { currentUser } from '../../middleware/auth.js';
-import { adminJobListSchema, removeJobSchema } from '../jobs/job.schemas.js';
 import { setUserStatus } from '../users/user.service.js';
 import { toUserDto } from '../users/user.mapper.js';
 import { recordAudit } from './audit.service.js';
 import * as adminJobs from './admin-jobs.service.js';
-import { decideVerificationSchema, listVerificationsSchema } from './verification.schemas.js';
+import {
+  adminJobListSchema,
+  decideVerificationSchema,
+  listVerificationsSchema,
+  removeJobSchema,
+  userStatusSchema,
+} from './admin.schemas.js';
 import * as verifications from './verification.service.js';
 
 export async function listVerifications(req: Request, res: Response) {
@@ -33,8 +37,6 @@ export async function removeJob(req: Request, res: Response) {
   await adminJobs.removeJob(currentUser(req).id, parseId(req.params.id, 'Job'), reason);
   res.json({ ok: true });
 }
-
-const userStatusSchema = z.object({ status: z.enum(['active', 'blocked'], 'Choose active or blocked.') });
 
 /** Block or unblock a worker or employer. Blocking logs them out everywhere. */
 export async function setStatus(req: Request, res: Response) {

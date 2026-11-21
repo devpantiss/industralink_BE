@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as employerJobs from './employer-jobs.controller.js';
-import * as jobs from './jobs.controller.js';
+import * as jobs from './job-search.controller.js';
 
 /** Mounted at /api/v1/jobs (workers only, see routes.ts). */
 export const workerJobsRouter = Router();

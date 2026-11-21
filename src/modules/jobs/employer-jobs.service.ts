@@ -1,10 +1,12 @@
 import { prisma } from '../../db/prisma.js';
 import { Prisma, type JobStatus } from '../../generated/prisma/client.js';
-import { AppError, forbidden, notFound } from '../../lib/errors.js';
+import { conflict, forbidden, invalid, notFound } from '../../lib/errors.js';
 import { toJobDto } from './job.mapper.js';
 import { applicantCounts } from './job.queries.js';
-import { checkJobRules, ensureCanPublish } from './job.rules.js';
+import { checkJobRules, ensureCanPublish, type JobRuleState } from './job.rules.js';
 import type { CreateJobInput, UpdateJobInput } from './job.schemas.js';
+
+const toDate = (date: string | null) => (date ? new Date(date) : null);
 
 /** Form fields -> database columns. Fields that were not sent stay undefined (= unchanged). */
 function toJobData<T extends UpdateJobInput>(input: T) {
@@ -13,7 +15,39 @@ function toJobData<T extends UpdateJobInput>(input: T) {
     ...fields,
     ...(location && { city: location.city, state: location.state }),
     ...(walkIn !== undefined && { walkIn: walkIn ?? Prisma.DbNull }),
-    ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null }),
+    ...(deadline !== undefined && { deadline: toDate(deadline) }),
+  };
+}
+
+type RuleFields = Omit<JobRuleState, 'status'>;
+
+/** A new job before anything is filled in (same defaults as the database). */
+const NEW_JOB: RuleFields = {
+  payMin: null,
+  payMax: null,
+  state: '',
+  jobType: 'full_time',
+  walkIn: null,
+  deadline: null,
+  allowCalls: false,
+  hrPhone: null,
+};
+
+/** A field that was not sent keeps its current value; null means "cleared". */
+const changed = <T>(value: T | undefined, current: T) => (value === undefined ? current : value);
+
+/** The job as it will be after the changes, for checkJobRules. */
+function afterChanges(current: RuleFields, status: string, changes: UpdateJobInput): JobRuleState {
+  return {
+    status,
+    payMin: changed(changes.payMin, current.payMin),
+    payMax: changed(changes.payMax, current.payMax),
+    state: changed(changes.location?.state, current.state),
+    jobType: changed(changes.jobType, current.jobType),
+    walkIn: changed(changes.walkIn, current.walkIn),
+    deadline: changes.deadline === undefined ? current.deadline : toDate(changes.deadline),
+    allowCalls: changed(changes.allowCalls, current.allowCalls),
+    hrPhone: changed(changes.hrPhone, current.hrPhone),
   };
 }
 
@@ -50,24 +84,10 @@ export async function createJob(companyId: string, userId: string, input: Create
   if (!company) throw notFound('Company not found.');
 
   const status = input.status ?? 'draft';
-  if (status === 'closed')
-    throw new AppError(422, 'VALIDATION_ERROR', 'A new job can be a draft or published.');
+  if (status === 'closed') throw invalid('A new job can be a draft or published.');
   if (status === 'active') ensureCanPublish(company);
 
-  checkJobRules(
-    {
-      status,
-      payMin: input.payMin ?? null,
-      payMax: input.payMax ?? null,
-      state: input.location.state,
-      jobType: input.jobType ?? 'full_time',
-      walkIn: input.walkIn ?? null,
-      deadline: input.deadline ? new Date(input.deadline) : null,
-      allowCalls: input.allowCalls ?? false,
-      hrPhone: input.hrPhone ?? null,
-    },
-    true,
-  );
+  checkJobRules(afterChanges(NEW_JOB, status, input), true);
 
   const job = await prisma.job.create({
     data: {
@@ -97,33 +117,18 @@ export async function updateJob(companyId: string, jobId: string, changes: Updat
   if (nextStatus === 'draft' && job.status !== 'draft') {
     const applicants = await prisma.application.count({ where: { jobId } });
     if (applicants > 0) {
-      throw new AppError(
-        409,
-        'HAS_APPLICANTS',
+      throw conflict(
         'This job has applicants, so it cannot go back to draft. Close it instead.',
+        'HAS_APPLICANTS',
       );
     }
   }
 
-  const data = toJobData(changes);
-  checkJobRules(
-    {
-      status: nextStatus,
-      payMin: changes.payMin !== undefined ? changes.payMin : job.payMin,
-      payMax: changes.payMax !== undefined ? changes.payMax : job.payMax,
-      state: changes.location?.state ?? job.state,
-      jobType: changes.jobType ?? job.jobType,
-      walkIn: changes.walkIn !== undefined ? changes.walkIn : job.walkIn,
-      deadline: data.deadline !== undefined ? data.deadline : job.deadline,
-      allowCalls: changes.allowCalls ?? job.allowCalls,
-      hrPhone: changes.hrPhone !== undefined ? changes.hrPhone : job.hrPhone,
-    },
-    publishing || changes.deadline !== undefined,
-  );
+  checkJobRules(afterChanges(job, nextStatus, changes), publishing || changes.deadline !== undefined);
 
   await prisma.job.update({
     where: { id: job.id },
-    data: { ...data, ...(publishing && !job.postedAt && { postedAt: new Date() }) },
+    data: { ...toJobData(changes), ...(publishing && !job.postedAt && { postedAt: new Date() }) },
   });
   return jobResponse(job.id);
 }
@@ -133,11 +138,7 @@ export async function deleteJob(companyId: string, jobId: string) {
   const job = await findOwnJob(companyId, jobId);
   const applicants = await prisma.application.count({ where: { jobId: job.id } });
   if (applicants > 0) {
-    throw new AppError(
-      409,
-      'HAS_APPLICANTS',
-      "This job has applicants, so it can't be deleted. Close it instead.",
-    );
+    throw conflict("This job has applicants, so it can't be deleted. Close it instead.", 'HAS_APPLICANTS');
   }
   await prisma.job.delete({ where: { id: job.id } });
 }

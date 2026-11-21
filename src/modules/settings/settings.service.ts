@@ -1,6 +1,6 @@
 import { prisma } from '../../db/prisma.js';
 import type { UserSettings } from '../../generated/prisma/client.js';
-import type { UpdateSettingsInput } from './account.schemas.js';
+import type { UpdateSettingsInput } from './settings.schemas.js';
 
 /** Settings as the apps see them (matches `UserSettings` in the dashboard types). */
 function toSettingsDto(settings: UserSettings) {

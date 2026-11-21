@@ -52,6 +52,10 @@ Who may call what is set in one place: `src/routes.ts`.
 Rules: routes only wire URLs; controllers read the request and reply; services hold the logic and
 database calls; mappers decide which fields leave the API.
 
+File names: `<feature>.routes.ts`, `.controller.ts`, `.service.ts`, `.schemas.ts` (Zod input checks),
+`.mapper.ts` (database row -> API response). A part used by one audience gets its own prefix,
+e.g. `employer-jobs.service.ts`, `job-search.controller.ts`. Input checks never live in routes or controllers.
+
 ## API so far
 
 All errors look like `{ "message": "...", "code": "..." }`. Phones go out as 10 digits.
