@@ -1,0 +1,63 @@
+# Admin: company approvals, jobs, blocking users.
+
+@base = http://localhost:4000/api/v1
+
+### Log in as admin
+# @name login
+POST {{base}}/auth/dev-login
+Content-Type: application/json
+
+{ "email": "admin@industrialink.demo" }
+
+### Companies waiting for approval
+# @name waiting
+GET {{base}}/admin/verifications
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Already approved / rejected
+GET {{base}}/admin/verifications?status=approved
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Reject the first waiting company (reason is required)
+POST {{base}}/admin/verifications/company/{{waiting.response.body.$[0].id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "decision": "reject", "reason": "GST certificate is missing." }
+
+### Or approve it (only works while it is still waiting)
+POST {{base}}/admin/verifications/company/{{waiting.response.body.$[0].id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "decision": "approve" }
+
+### All published and closed jobs
+# @name jobs
+GET {{base}}/admin/jobs
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Remove a bad job (the company is told)
+POST {{base}}/admin/jobs/{{jobs.response.body.$[0].id}}/remove
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "reason": "Asks workers to pay a fee." }
+
+### Find a user id to block
+# @name users
+GET {{base}}/auth/dev-users
+
+### Block a user (they are logged out at once). Change the index to pick another user.
+PATCH {{base}}/admin/users/{{users.response.body.$[1].id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "status": "blocked" }
+
+### Unblock
+PATCH {{base}}/admin/users/{{users.response.body.$[1].id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "status": "active" }

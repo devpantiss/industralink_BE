@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from './middleware/auth.js';
 import { accountRouter } from './modules/account/account.routes.js';
-import { adminJobsRouter, verificationRouter } from './modules/admin/admin.routes.js';
+import { adminJobsRouter, adminUsersRouter, verificationRouter } from './modules/admin/admin.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { companyDirectoryRouter } from './modules/companies/company-directory.routes.js';
 import { companyRouter } from './modules/companies/company.routes.js';
@@ -55,4 +55,5 @@ const admin = Router();
 admin.use(requireAuth, requireRole('admin'));
 admin.use('/verifications', verificationRouter);
 admin.use('/jobs', adminJobsRouter);
+admin.use('/users', adminUsersRouter);
 apiRouter.use('/admin', admin);

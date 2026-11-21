@@ -16,6 +16,11 @@ const envSchema = z.object({
   PUBLIC_URL: z.url().optional(),
   /** Folder for uploaded files while files are stored on this server's disk. */
   UPLOAD_DIR: z.string().min(1).default('uploads'),
+  /** Test login and test sign-up, for building the apps before the real login exists. Never in production. */
+  DEV_LOGIN: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   CORS_ORIGINS: z
     .string()
     .default('')
@@ -31,6 +36,11 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error(`Invalid environment variables:\n${z.prettifyError(parsed.error)}`);
+  process.exit(1);
+}
+
+if (parsed.data.NODE_ENV === 'production' && parsed.data.DEV_LOGIN) {
+  console.error('DEV_LOGIN must not be turned on in production.');
   process.exit(1);
 }
 

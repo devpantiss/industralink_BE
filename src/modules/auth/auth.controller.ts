@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { currentSessionId, currentUser } from '../../middleware/auth.js';
 import { toUserDto } from '../users/user.mapper.js';
-import { devLoginSchema } from './auth.schemas.js';
+import { devLoginSchema, devSignupEmployerSchema, devSignupWorkerSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
 import { revokeSession, type SessionMeta } from './session.service.js';
 
@@ -29,4 +29,14 @@ export async function devLogin(req: Request, res: Response) {
 
 export async function devUsers(_req: Request, res: Response) {
   res.json(await authService.listDevUsers());
+}
+
+export async function devSignupWorker(req: Request, res: Response) {
+  const input = devSignupWorkerSchema.parse(req.body ?? {});
+  res.status(201).json(await authService.devSignupWorker(input, sessionMeta(req)));
+}
+
+export async function devSignupEmployer(req: Request, res: Response) {
+  const input = devSignupEmployerSchema.parse(req.body ?? {});
+  res.status(201).json(await authService.devSignupEmployer(input, sessionMeta(req)));
 }

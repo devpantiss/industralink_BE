@@ -5,7 +5,7 @@ import { logger } from './lib/logger.js';
 
 const server = createApp().listen(env.PORT, () => {
   logger.info(`API running on http://localhost:${env.PORT} (${env.NODE_ENV})`);
-  if (!env.isProduction) logger.warn('Dev login is ON: POST /api/v1/auth/dev-login');
+  if (env.DEV_LOGIN) logger.warn('Test login is ON (DEV_LOGIN=true). Never use this on a live server.');
 });
 
 /** Finish open requests and close the database before exiting (deploys, Ctrl+C). */

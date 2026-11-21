@@ -1,0 +1,107 @@
+# Employer: company profile, documents and jobs.
+
+@base = http://localhost:4000/api/v1
+
+### Log in as HR of Konark Heavy Engineering (approved company)
+# @name login
+POST {{base}}/auth/dev-login
+Content-Type: application/json
+
+{ "email": "hr@konark.demo" }
+
+### My company
+GET {{base}}/employer/company
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Edit company
+PATCH {{base}}/employer/company
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "about": "Steel fabrication and heavy engineering.", "hrPhone": "90000 00001", "sites": ["Fabrication Shop 1", "Power Plant"] }
+
+### Upload a proof document (GST)
+POST {{base}}/employer/company/documents
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="type"
+
+gst
+------FormBoundary
+Content-Disposition: form-data; name="file"; filename="GST_Certificate.pdf"
+Content-Type: application/pdf
+
+< ./files/sample-resume.pdf
+------FormBoundary--
+
+### My jobs (all)
+GET {{base}}/employer/jobs
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Only drafts
+GET {{base}}/employer/jobs?status=draft
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Post a job
+# @name newJob
+POST {{base}}/employer/jobs
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "title": "Fitter (ITI)",
+  "trade": "fitter",
+  "sector": "metals",
+  "location": { "city": "Jharsuguda", "state": "Odisha" },
+  "payMin": 17000,
+  "payMax": 21000,
+  "openings": 5,
+  "qualifications": ["ITI"],
+  "benefits": ["food", "pf_esi"],
+  "deadline": "2099-12-31",
+  "hrPhone": "9000000001",
+  "allowCalls": true,
+  "callHours": "10 AM – 6 PM",
+  "status": "active"
+}
+
+### Rules check: no pay, should fail with 422
+POST {{base}}/employer/jobs
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "title": "No pay job", "trade": "helper", "sector": "metals", "location": { "city": "Angul", "state": "Odisha" }, "status": "active" }
+
+### Edit the job
+PATCH {{base}}/employer/jobs/{{newJob.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "payMax": 23000, "openings": 6 }
+
+### Close it
+PATCH {{base}}/employer/jobs/{{newJob.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "status": "closed" }
+
+### Delete it (works only if nobody applied)
+DELETE {{base}}/employer/jobs/{{newJob.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### A pending company can't publish: should fail with 403 NOT_VERIFIED
+# @name pending
+POST {{base}}/auth/dev-login
+Content-Type: application/json
+
+{ "email": "hr@kalinganagar.demo" }
+
+###
+POST {{base}}/employer/jobs
+Authorization: Bearer {{pending.response.body.$.token}}
+Content-Type: application/json
+
+{ "title": "Helper", "trade": "helper", "sector": "metals", "location": { "city": "Jajpur", "state": "Odisha" }, "payMin": 15000, "status": "active" }

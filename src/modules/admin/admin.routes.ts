@@ -12,3 +12,8 @@ export const adminJobsRouter = Router();
 
 adminJobsRouter.get('/', admin.listJobs);
 adminJobsRouter.post('/:id/remove', admin.removeJob);
+
+/** Mounted at /api/v1/admin/users (admins only). The user list comes in a later phase. */
+export const adminUsersRouter = Router();
+
+adminUsersRouter.patch('/:id', admin.setStatus);

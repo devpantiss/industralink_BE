@@ -1,0 +1,106 @@
+# Worker: profile, documents, finding and saving jobs, companies.
+
+@base = http://localhost:4000/api/v1
+
+### Log in as worker Ramesh Kumar (run this first)
+# @name login
+POST {{base}}/auth/dev-login
+Content-Type: application/json
+
+{ "phone": "9876543210" }
+
+### My profile (with completeness score)
+GET {{base}}/worker/profile
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Edit profile (send only what changes)
+PATCH {{base}}/worker/profile
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "skills": ["Arc welding", "MIG welding", "Gas cutting", "Grinding"],
+  "expectedPay": 21000,
+  "location": { "city": "Sambalpur", "state": "Odisha" },
+  "workHistory": [
+    { "company": "Sai Fabricators, Sambalpur", "role": "Welder", "from": "2021" },
+    { "company": "Local workshop", "role": "Helper welder", "from": "2019", "to": "2021" }
+  ]
+}
+
+### Bad data: should fail with 422 (pincode has 6 digits)
+PATCH {{base}}/worker/profile
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "pincode": "123" }
+
+### Set a profile photo (tiny test image)
+PATCH {{base}}/worker/profile
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{ "photoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" }
+
+### Upload a resume
+# @name upload
+POST {{base}}/worker/documents
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="type"
+
+resume
+------FormBoundary
+Content-Disposition: form-data; name="file"; filename="Ramesh_Resume.pdf"
+Content-Type: application/pdf
+
+< ./files/sample-resume.pdf
+------FormBoundary--
+
+### My documents (each has a link that works for 1 hour)
+GET {{base}}/worker/documents
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Make it the main resume
+POST {{base}}/worker/documents/{{upload.response.body.$.id}}/default
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Delete it
+DELETE {{base}}/worker/documents/{{upload.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Search jobs (newest first)
+# @name search
+GET {{base}}/jobs
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Search with words and filters
+GET {{base}}/jobs?q=crane%20paradip&sort=pay&minPay=18000
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Open the first job from the search (no HR phone in it)
+GET {{base}}/jobs/{{search.response.body.$.items[0].id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Save it
+POST {{base}}/jobs/{{search.response.body.$.items[0].id}}/save
+Authorization: Bearer {{login.response.body.$.token}}
+
+### My saved jobs
+GET {{base}}/worker/saved
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Unsave it
+DELETE {{base}}/jobs/{{search.response.body.$.items[0].id}}/save
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Companies (verified only)
+# @name companies
+GET {{base}}/companies
+Authorization: Bearer {{login.response.body.$.token}}
+
+### One company and its open jobs
+GET {{base}}/companies/{{companies.response.body.$[0].company.id}}
+Authorization: Bearer {{login.response.body.$.token}}

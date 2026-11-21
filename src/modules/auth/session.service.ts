@@ -1,9 +1,9 @@
 import { env } from '../../config/env.js';
 import { prisma } from '../../db/prisma.js';
 import type { User } from '../../generated/prisma/client.js';
-import { forbidden } from '../../lib/errors.js';
 import { signToken } from '../../lib/jwt.js';
 import { toUserDto, type UserDto } from '../users/user.mapper.js';
+import { assertCanUseAccount } from '../users/account-access.js';
 
 export interface SessionMeta {
   ip?: string;
@@ -21,9 +21,8 @@ export interface AuthResponse {
  * checks the account, opens a session and returns the token.
  */
 export async function startSession(user: User, meta: SessionMeta): Promise<AuthResponse> {
-  if (user.status === 'blocked') {
-    throw forbidden('This account is blocked. Please contact support.', 'BLOCKED');
-  }
+  const company = user.companyId ? await prisma.company.findUnique({ where: { id: user.companyId } }) : null;
+  assertCanUseAccount({ ...user, company });
 
   const expiresAt = new Date(Date.now() + env.SESSION_DAYS * 24 * 60 * 60 * 1000);
   const [session, updatedUser] = await prisma.$transaction([

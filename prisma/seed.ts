@@ -16,10 +16,23 @@ async function wipe() {
   if (list) await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} CASCADE`);
 }
 
-async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Refusing to seed a production database.');
+/** The demo data wipes every table, so it only runs on a database on this computer. */
+function assertLocalDatabase() {
+  const url = process.env.DATABASE_URL ?? '';
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return '';
+    }
+  })();
+  if (process.env.NODE_ENV === 'production' || !['localhost', '127.0.0.1', '::1'].includes(host)) {
+    throw new Error(`Refusing to load demo data: "${host || 'unknown'}" is not a local database.`);
   }
+}
+
+async function main() {
+  assertLocalDatabase();
 
   await wipe();
 

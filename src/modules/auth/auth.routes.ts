@@ -9,9 +9,11 @@ authRouter.get('/me', requireAuth, authController.me);
 authRouter.post('/logout', requireAuth, authController.logout);
 authRouter.post('/onboarding/complete', requireAuth, authController.completeOnboarding);
 
-// Temporary login for development, until the real login method is decided.
-// Never registered in production.
-if (!env.isProduction) {
+// Test login and sign-up, until the real login method is decided.
+// Only when DEV_LOGIN=true (the server refuses that setting in production).
+if (env.DEV_LOGIN) {
   authRouter.get('/dev-users', authController.devUsers);
   authRouter.post('/dev-login', authController.devLogin);
+  authRouter.post('/dev-signup/worker', authController.devSignupWorker);
+  authRouter.post('/dev-signup/employer', authController.devSignupEmployer);
 }

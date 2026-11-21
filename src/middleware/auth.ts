@@ -3,6 +3,7 @@ import { prisma } from '../db/prisma.js';
 import type { Role, User } from '../generated/prisma/client.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
 import { verifyToken } from '../lib/jwt.js';
+import { assertCanUseAccount } from '../modules/users/account-access.js';
 
 /** Only update session.lastUsedAt this often, to avoid a database write on every request. */
 const LAST_USED_UPDATE_MS = 10 * 60 * 1000;
@@ -22,15 +23,13 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
   const session = await prisma.session.findUnique({
     where: { id: payload.sid },
-    include: { user: true },
+    include: { user: { include: { company: true } } },
   });
   const now = new Date();
   if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= now) {
     throw unauthorized('Your session has expired. Please log in again.', 'SESSION_EXPIRED');
   }
-  if (session.user.status === 'blocked') {
-    throw forbidden('This account is blocked. Please contact support.', 'BLOCKED');
-  }
+  assertCanUseAccount(session.user);
 
   if (now.getTime() - session.lastUsedAt.getTime() > LAST_USED_UPDATE_MS) {
     await prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: now } });

@@ -1,6 +1,12 @@
 import { prisma } from '../../db/prisma.js';
 import { notFound } from '../../lib/errors.js';
 import { toUserDto } from '../users/user.mapper.js';
+import {
+  createEmployerAccount,
+  createWorkerAccount,
+  type NewEmployer,
+  type NewWorker,
+} from '../users/user.service.js';
 import type { DevLoginInput } from './auth.schemas.js';
 import { startSession, type SessionMeta } from './session.service.js';
 
@@ -33,4 +39,14 @@ export async function listDevUsers() {
 export async function completeOnboarding(userId: string) {
   const user = await prisma.user.update({ where: { id: userId }, data: { onboarded: true } });
   return toUserDto(user);
+}
+
+/** DEVELOPMENT ONLY. Creates a worker account and logs in, without OTP. */
+export async function devSignupWorker(input: NewWorker, meta: SessionMeta) {
+  return startSession(await createWorkerAccount(input), meta);
+}
+
+/** DEVELOPMENT ONLY. Creates an employer + company and logs in, without email checks. */
+export async function devSignupEmployer(input: NewEmployer, meta: SessionMeta) {
+  return startSession(await createEmployerAccount(input), meta);
 }

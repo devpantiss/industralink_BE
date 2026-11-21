@@ -1,0 +1,13 @@
+# Public pages: no login needed (shared WhatsApp job links, landing site).
+
+@base = http://localhost:4000/api/v1
+
+### Search jobs without logging in
+# @name search
+GET {{base}}/public/jobs?q=welder
+
+### One job (no HR phone)
+GET {{base}}/public/jobs/{{search.response.body.$.items[0].id}}
+
+### Without a login, worker pages say 401
+GET {{base}}/worker/profile

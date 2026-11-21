@@ -80,6 +80,36 @@ Dev login is temporary (until the real login method is chosen) and is **not avai
 
 Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, worker phone `9876543210`.
 
+## Testing
+
+**1. Automatic tests** (do this before every commit)
+
+```bash
+npm run db:up      # database must be running
+npm test           # about 110 tests, uses the separate test database
+```
+
+**2. Try the API by hand in VS Code**
+
+1. Install the **REST Client** extension (VS Code suggests it when you open this folder).
+2. `npm run db:seed` for fresh demo data, then `npm run dev`.
+3. Open a file in [`requests/`](requests) and click **Send Request** above a request.
+   Run the "Log in" request at the top of each file first; the others reuse its token.
+
+| File              | What it tries                                               |
+| ----------------- | ----------------------------------------------------------- |
+| `1-auth.http`     | health, test login, test sign-up, logout, settings          |
+| `2-worker.http`   | profile, photo, documents, job search, save, companies      |
+| `3-employer.http` | company, proof documents, post / edit / close / delete jobs |
+| `4-admin.http`    | approve / reject companies, remove jobs, block users        |
+| `5-public.http`   | job search and job page without login                       |
+
+Postman or Bruno work too: same URLs, add `Authorization: Bearer <token>` from the login reply.
+
+**3. Look inside the database:** `npm run db:studio` opens it in the browser.
+
+**4. Start again with clean demo data:** `npm run db:seed` (only works on a database on this computer).
+
 ## Files
 
 Uploads (PDF, JPG, PNG, WEBP, max 5 MB) are checked by their real content and saved in `UPLOAD_DIR`

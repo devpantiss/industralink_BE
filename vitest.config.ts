@@ -8,7 +8,13 @@ if (!testDatabaseUrl) throw new Error('TEST_DATABASE_URL is missing in .env');
 export default defineConfig({
   test: {
     // Tests always use the separate test database, never the dev one.
-    env: { ...fileEnv, NODE_ENV: 'test', DATABASE_URL: testDatabaseUrl, UPLOAD_DIR: '.test-uploads' },
+    env: {
+      ...fileEnv,
+      NODE_ENV: 'test',
+      DATABASE_URL: testDatabaseUrl,
+      UPLOAD_DIR: '.test-uploads',
+      DEV_LOGIN: 'true',
+    },
     globalSetup: ['./tests/global-setup.ts'],
     fileParallelism: false,
   },
