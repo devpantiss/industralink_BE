@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { prisma } from './db/prisma.js';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { requireJsonBody } from './middleware/json-body.js';
 import { notFoundHandler } from './middleware/not-found.js';
 import { apiLimiter } from './middleware/rate-limit.js';
 import { filesRouter } from './modules/files/files.routes.js';
@@ -21,6 +22,7 @@ export function createApp() {
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGINS }));
   app.use(express.json({ limit: '2mb' }));
+  app.use(requireJsonBody);
   app.use(pinoHttp({ logger }));
 
   app.get('/health', async (_req, res) => {

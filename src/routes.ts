@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { requireAuth, requireRole } from './middleware/auth.js';
 import { settingsRouter } from './modules/settings/settings.routes.js';
 import { adminJobsRouter, adminUsersRouter, verificationRouter } from './modules/admin/admin.routes.js';
+import {
+  applyRouter,
+  candidatesRouter,
+  employerApplicationsRouter,
+  jobCandidatesRouter,
+  workerApplicationsRouter,
+} from './modules/applications/application.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { companyDirectoryRouter } from './modules/companies/company-directory.routes.js';
 import { companyRouter } from './modules/companies/company.routes.js';
@@ -36,18 +43,21 @@ const worker = Router();
 worker.use(requireAuth, requireRole('worker'));
 worker.use('/', workerProfileRouter);
 worker.use('/saved', savedJobsRouter);
+worker.use('/applications', workerApplicationsRouter);
 apiRouter.use('/worker', worker);
 
 // Workers: finding jobs and companies.
 const workerOnly = [requireAuth, requireRole('worker')];
-apiRouter.use('/jobs', ...workerOnly, workerJobsRouter);
+apiRouter.use('/jobs', ...workerOnly, workerJobsRouter, applyRouter);
 apiRouter.use('/companies', ...workerOnly, companyDirectoryRouter);
 
 // Employers.
 const employer = Router();
 employer.use(requireAuth, requireRole('employer'));
 employer.use('/company', companyRouter);
-employer.use('/jobs', employerJobsRouter);
+employer.use('/jobs', employerJobsRouter, jobCandidatesRouter);
+employer.use('/candidates', candidatesRouter);
+employer.use('/applications', employerApplicationsRouter);
 apiRouter.use('/employer', employer);
 
 // Admins.

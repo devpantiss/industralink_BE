@@ -164,3 +164,11 @@ New optional fields (all optional, so old data still works):
 - `WorkerProfile.workHistory[]`: `{ company, role, from, to? }` (years; no `to` = still there).
 
 Backend still to do: close jobs automatically at `deadline` (search already hides them), real distance for "Near me" (needs coordinates), email verification for employers.
+
+## Backend notes (applying and hiring, Nov 2026)
+
+- `POST /jobs/:id/apply` returns `WorkerApplication` (201). `sentWith: "document"` needs one of the worker's own `documentId`s, else 422 `NO_DOCUMENT`.
+- `POST /worker/applications/:id/interview-response`: 409 `NO_INTERVIEW` when there is no interview. `offer-response`: 409 `NO_OFFER` when there is no offer.
+- `PATCH /employer/applications/:id`: `stage` is one of `shortlisted | interview | offer | hired | rejected`. A missing interview or offer gives 422. Rescheduling the interview clears the worker's reply.
+- HR gets a notification when a worker applies, withdraws, or replies to an interview or offer.
+- `PATCH /employer/company`: if an **approved** company changes its `name` or `gstNumber`, it goes back to `verification: "pending"` for admin review. Its jobs are hidden from workers until it is approved again.

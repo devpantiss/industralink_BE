@@ -60,25 +60,20 @@ e.g. `employer-jobs.service.ts`, `job-search.controller.ts`. Input checks never 
 
 All errors look like `{ "message": "...", "code": "..." }`. Phones go out as 10 digits.
 
-| Method      | Path                                                                | Who       |
-| ----------- | ------------------------------------------------------------------- | --------- |
-| GET         | `/health`                                                           | –         |
-| GET         | `/api/v1/auth/me`                                                   | logged in |
-| POST        | `/api/v1/auth/logout`                                               | logged in |
-| POST        | `/api/v1/auth/onboarding/complete`                                  | logged in |
-| GET / PATCH | `/api/v1/me/settings`                                               | logged in |
-| GET / PATCH | `/api/v1/worker/profile`                                            | worker    |
-| GET / POST  | `/api/v1/worker/documents`                                          | worker    |
-| DELETE      | `/api/v1/worker/documents/:id`                                      | worker    |
-| POST        | `/api/v1/worker/documents/:id/default`                              | worker    |
-| GET / PATCH | `/api/v1/employer/company`                                          | employer  |
-| GET / POST  | `/api/v1/employer/company/documents`                                | employer  |
-| DELETE      | `/api/v1/employer/company/documents/:id`                            | employer  |
-| GET         | `/api/v1/admin/verifications?status=pending`                        | admin     |
-| POST        | `/api/v1/admin/verifications/company/:id`                           | admin     |
-| GET         | `/files/...` (signed links from the API)                            | –         |
-| GET         | `/api/v1/auth/dev-users`                                            | dev only  |
-| POST        | `/api/v1/auth/dev-login` `{ email }` or `{ phone }` or `{ userId }` | dev only  |
+Full details (bodies, answers, errors): `docs/API_CONTRACT.md`. All paths below start with `/api/v1`.
+
+| Who       | Routes                                                                                                                                                                                                                           |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anyone    | `GET /health` (no `/api/v1`), `GET /public/jobs`, `GET /public/jobs/:id`, `GET /files/...` (signed links)                                                                                                                        |
+| Logged in | `GET /auth/me`, `POST /auth/logout`, `POST /auth/onboarding/complete`, `GET/PATCH /me/settings`                                                                                                                                  |
+| Worker    | `GET/PATCH /worker/profile`, `GET/POST /worker/documents`, `DELETE /worker/documents/:id`, `POST /worker/documents/:id/default`                                                                                                  |
+| Worker    | `GET /jobs`, `GET /jobs/:id`, `POST/DELETE /jobs/:id/save`, `GET /worker/saved`, `GET /companies`, `GET /companies/:id`                                                                                                          |
+| Worker    | `POST /jobs/:id/apply`, `GET /worker/applications`, `GET /worker/applications/:id`, `POST /worker/applications/:id/withdraw`, `POST /worker/applications/:id/interview-response`, `POST /worker/applications/:id/offer-response` |
+| Employer  | `GET/PATCH /employer/company`, `GET/POST /employer/company/documents`, `DELETE /employer/company/documents/:id`                                                                                                                  |
+| Employer  | `GET/POST /employer/jobs`, `GET/PATCH/DELETE /employer/jobs/:id`                                                                                                                                                                 |
+| Employer  | `GET /employer/jobs/:id/candidates`, `GET /employer/candidates`, `PATCH /employer/applications/:id`, `POST /employer/applications/:id/view`                                                                                      |
+| Admin     | `GET /admin/verifications`, `POST /admin/verifications/company/:id`, `GET /admin/jobs`, `POST /admin/jobs/:id/remove`, `PATCH /admin/users/:id`                                                                                  |
+| Dev only  | `GET /auth/dev-users`, `POST /auth/dev-login`, `POST /auth/dev-signup/worker`, `POST /auth/dev-signup/employer`                                                                                                                  |
 
 Dev login is temporary (until the real login method is chosen) and is **not available in production**.
 
@@ -90,25 +85,17 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 110 tests, uses the separate test database
+npm test           # about 136 tests, uses the separate test database
 ```
 
-**2. Try the API by hand in VS Code**
+**2. By hand with the Postman app**
 
-1. Install the **REST Client** extension (VS Code suggests it when you open this folder).
-2. `npm run db:seed` for fresh demo data, then `npm run dev`.
-3. Open a file in [`requests/`](requests) and click **Send Request** above a request.
-   Run the "Log in" request at the top of each file first; the others reuse its token.
-
-| File              | What it tries                                               |
-| ----------------- | ----------------------------------------------------------- |
-| `1-auth.http`     | health, test login, test sign-up, logout, settings          |
-| `2-worker.http`   | profile, photo, documents, job search, save, companies      |
-| `3-employer.http` | company, proof documents, post / edit / close / delete jobs |
-| `4-admin.http`    | approve / reject companies, remove jobs, block users        |
-| `5-public.http`   | job search and job page without login                       |
-
-Postman or Bruno work too: same URLs, add `Authorization: Bearer <token>` from the login reply.
+1. `npm run db:seed` for fresh demo data, then `npm run dev`.
+2. In the Postman app: **Import** → pick the file `postman/IndustriaLink.postman_collection.json`.
+3. Run folder **0. Start here** first (it logs in and saves the tokens), then any other request,
+   or right-click the collection → **Run collection** to run all 74 requests.
+4. Bodies must be **raw → JSON** (a "Text" body gets `415 NOT_JSON`).
+   For the 2 upload requests, choose a file once: `postman/sample-resume.pdf`.
 
 **3. Look inside the database:** `npm run db:studio` opens it in the browser.
 

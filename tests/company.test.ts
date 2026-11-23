@@ -91,6 +91,23 @@ describe('GET/PATCH /employer/company', () => {
     expect(res.body.rejectionReason).toBeUndefined();
   });
 
+  it('an approved company goes back for review when its name or GST number changes', async () => {
+    const approved = await createEmployer({ verification: 'approved' });
+    const hrAuth = await authHeader(approved.user);
+    const patch = (body: object) => request(app).patch('/api/v1/employer/company').set(hrAuth).send(body);
+
+    // Other details and the same name keep the approval.
+    let res = await patch({ about: 'We build ships.', name: approved.company.name });
+    expect(res.body.verification).toBe('approved');
+
+    res = await patch({ name: 'Renamed Company Pvt Ltd' });
+    expect(res.body.verification).toBe('pending');
+
+    await prisma.company.update({ where: { id: approved.company.id }, data: { verification: 'approved' } });
+    res = await patch({ gstNumber: '21AAACK1234A1Z5' });
+    expect(res.body.verification).toBe('pending');
+  });
+
   it('is only for employers (403 for a worker)', async () => {
     const res = await request(app)
       .get('/api/v1/employer/company')

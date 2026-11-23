@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma.js';
-import type { User } from '../../generated/prisma/client.js';
+import type { Company, User } from '../../generated/prisma/client.js';
 import { AppError, notFound } from '../../lib/errors.js';
 import { deleteFile } from '../files/storage.js';
 import { storeDocument, storeImageFromDataUrl } from '../files/upload.js';
@@ -20,6 +20,17 @@ export async function getCompany(companyId: string) {
   return toCompanyDto(company);
 }
 
+/**
+ * The admin checked the name and GST number when approving. Changing either sends an
+ * approved company back for review (its jobs are hidden from workers until approved again).
+ */
+function changesCheckedDetails(before: Company, changes: { name?: string; gstNumber?: string | null }) {
+  return (
+    (changes.name !== undefined && changes.name !== before.name) ||
+    (changes.gstNumber !== undefined && changes.gstNumber !== before.gstNumber)
+  );
+}
+
 /** Same rule as worker photos: data URL = new logo, null/"" = remove, a link = no change. */
 async function resolveLogo(companyId: string, logoUrl: string | null | undefined) {
   if (logoUrl === null || logoUrl === '') return null;
@@ -34,7 +45,9 @@ export async function updateCompany(companyId: string, input: UpdateCompanyInput
   if (!before) throw notFound('Company not found.');
 
   const logoKey = await resolveLogo(companyId, logoUrl);
-  const sendBackForReview = resubmit === true && before.verification === 'rejected';
+  const sendBackForReview =
+    (resubmit === true && before.verification === 'rejected') ||
+    (before.verification === 'approved' && changesCheckedDetails(before, fields));
 
   try {
     await prisma.company.update({
@@ -43,7 +56,7 @@ export async function updateCompany(companyId: string, input: UpdateCompanyInput
         ...fields,
         ...(location !== undefined && { city: location?.city ?? null, state: location?.state ?? null }),
         ...(logoKey !== undefined && { logoKey }),
-        ...(sendBackForReview && { verification: 'pending', rejectionReason: null }),
+        ...(sendBackForReview && { verification: 'pending', rejectionReason: null, verifiedAt: null }),
       },
     });
   } catch (error) {

@@ -39,6 +39,16 @@ describe('basics', () => {
     expect(typeof res.body.message).toBe('string');
   });
 
+  it('a body sent as plain text gets a clear 415 NOT_JSON', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/dev-login')
+      .set('Content-Type', 'text/plain')
+      .send('{ "email": "admin@industrialink.demo" }');
+    expect(res.status).toBe(415);
+    expect(res.body.code).toBe('NOT_JSON');
+    expect(res.body.message).toContain('raw → choose JSON');
+  });
+
   it('broken JSON returns 400 INVALID_JSON', async () => {
     const res = await request(app)
       .post('/api/v1/auth/dev-login')
