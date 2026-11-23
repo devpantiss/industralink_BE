@@ -10,3 +10,18 @@ export function todayInIndia(): Date {
 /** Date-only text "YYYY-MM-DD", or undefined. */
 export const toDateOnly = (date: Date | null | undefined) =>
   date ? date.toISOString().slice(0, 10) : undefined;
+
+/** The day in India as "YYYY-MM-DD" (for grouping things per day). */
+export const indiaDayKey = (date: Date) =>
+  new Date(date.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+
+/** Short label for charts, e.g. "Mon" or "12 Nov", in India time. */
+export const indiaLabel = (date: Date, style: 'weekday' | 'dayMonth') =>
+  date.toLocaleDateString(
+    'en-IN',
+    style === 'weekday'
+      ? { weekday: 'short', timeZone: 'Asia/Kolkata' }
+      : { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' },
+  );
+
+export const DAY_MS = 24 * 60 * 60 * 1000;

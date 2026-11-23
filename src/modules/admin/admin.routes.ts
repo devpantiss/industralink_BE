@@ -13,7 +13,13 @@ export const adminJobsRouter = Router();
 adminJobsRouter.get('/', admin.listJobs);
 adminJobsRouter.post('/:id/remove', admin.removeJob);
 
-/** Mounted at /api/v1/admin/users (admins only). The user list comes in a later phase. */
+/** Mounted at /api/v1/admin/users (admins only). */
 export const adminUsersRouter = Router();
 
+adminUsersRouter.get('/', admin.listUsers);
 adminUsersRouter.patch('/:id', admin.setStatus);
+
+/** Mounted at /api/v1/admin/user-impact (admins only). */
+export const userImpactRouter = Router();
+
+userImpactRouter.get('/:id', admin.userImpact);

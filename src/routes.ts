@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from './middleware/auth.js';
 import { settingsRouter } from './modules/settings/settings.routes.js';
-import { adminJobsRouter, adminUsersRouter, verificationRouter } from './modules/admin/admin.routes.js';
+import {
+  adminJobsRouter,
+  adminUsersRouter,
+  userImpactRouter,
+  verificationRouter,
+} from './modules/admin/admin.routes.js';
 import {
   applyRouter,
   candidatesRouter,
@@ -18,6 +23,8 @@ import {
   savedJobsRouter,
   workerJobsRouter,
 } from './modules/jobs/job.routes.js';
+import { adminHomeRouter, employerHomeRouter, workerHomeRouter } from './modules/home/home.routes.js';
+import { notificationsRouter } from './modules/notifications/notification.routes.js';
 import { workerProfileRouter } from './modules/workers/worker.routes.js';
 
 /**
@@ -37,11 +44,12 @@ const me = Router();
 me.use(requireAuth);
 me.use('/', settingsRouter);
 apiRouter.use('/me', me);
+apiRouter.use('/notifications', requireAuth, notificationsRouter);
 
 // Workers.
 const worker = Router();
 worker.use(requireAuth, requireRole('worker'));
-worker.use('/', workerProfileRouter);
+worker.use('/', workerProfileRouter, workerHomeRouter);
 worker.use('/saved', savedJobsRouter);
 worker.use('/applications', workerApplicationsRouter);
 apiRouter.use('/worker', worker);
@@ -54,6 +62,7 @@ apiRouter.use('/companies', ...workerOnly, companyDirectoryRouter);
 // Employers.
 const employer = Router();
 employer.use(requireAuth, requireRole('employer'));
+employer.use('/', employerHomeRouter);
 employer.use('/company', companyRouter);
 employer.use('/jobs', employerJobsRouter, jobCandidatesRouter);
 employer.use('/candidates', candidatesRouter);
@@ -63,7 +72,9 @@ apiRouter.use('/employer', employer);
 // Admins.
 const admin = Router();
 admin.use(requireAuth, requireRole('admin'));
+admin.use('/', adminHomeRouter);
 admin.use('/verifications', verificationRouter);
 admin.use('/jobs', adminJobsRouter);
 admin.use('/users', adminUsersRouter);
+admin.use('/user-impact', userImpactRouter);
 apiRouter.use('/admin', admin);

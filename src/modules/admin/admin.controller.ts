@@ -6,11 +6,13 @@ import { setUserStatus } from '../users/user.service.js';
 import { toUserDto } from '../users/user.mapper.js';
 import { recordAudit } from './audit.service.js';
 import * as adminJobs from './admin-jobs.service.js';
+import * as adminUsers from './admin-users.service.js';
 import {
   adminJobListSchema,
   decideVerificationSchema,
   listVerificationsSchema,
   removeJobSchema,
+  userListSchema,
   userStatusSchema,
 } from './admin.schemas.js';
 import * as verifications from './verification.service.js';
@@ -50,4 +52,12 @@ export async function setStatus(req: Request, res: Response) {
     targetId: user.id,
   });
   res.json(toUserDto(user));
+}
+
+export async function listUsers(req: Request, res: Response) {
+  res.json(await adminUsers.listUsers(userListSchema.parse(req.query)));
+}
+
+export async function userImpact(req: Request, res: Response) {
+  res.json(await adminUsers.userImpact(parseId(req.params.id, 'User')));
 }

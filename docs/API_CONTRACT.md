@@ -172,3 +172,12 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - `PATCH /employer/applications/:id`: `stage` is one of `shortlisted | interview | offer | hired | rejected`. A missing interview or offer gives 422. Rescheduling the interview clears the worker's reply.
 - HR gets a notification when a worker applies, withdraws, or replies to an interview or offer.
 - `PATCH /employer/company`: if an **approved** company changes its `name` or `gstNumber`, it goes back to `verification: "pending"` for admin review. Its jobs are hidden from workers until it is approved again.
+
+## Backend notes (home screens and notifications, Nov 2026)
+
+- `GET /worker/summary`: `nextStep` is the next upcoming interview, or else an offer waiting for a reply.
+- `GET /employer/summary`: `attention` also lists interviews the worker can't attend (`action: "New time"`). `applicantsPerDay` covers the last 7 days in India time.
+- `GET /admin/summary`: `signupsPerWeek` uses real sign-ups only (6 weeks).
+- `GET /admin/users`: query `role` (`worker` default \| `employer`), `q?`, `status?`. Max 300 rows, newest first. An employer whose company is blocked shows as `blocked`.
+- `GET /admin/user-impact/:id`: `{ activeJobs, applicants }` for an employer; zeros for others.
+- `POST /notifications/:id/read` answers `{ ok }` even for an unknown id (nothing changes).

@@ -39,3 +39,11 @@ export const removeJobSchema = z.object({
 export const userStatusSchema = z.object({
   status: z.enum(['active', 'blocked'], 'Choose active or blocked.'),
 });
+
+export const userListSchema = z.object({
+  role: z.preprocess(blankToUndefined, z.enum(['worker', 'employer']).default('worker')),
+  q: z.preprocess(blankToUndefined, z.string().trim().max(80).optional()),
+  status: z.preprocess(blankToUndefined, z.enum(['active', 'pending', 'blocked']).optional()),
+});
+
+export type UserListInput = z.infer<typeof userListSchema>;
