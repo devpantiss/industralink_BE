@@ -86,6 +86,7 @@ export async function setUserStatus(userId: string, status: AccountStatus) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw notFound('User not found.');
   if (user.role === 'admin') throw forbidden('Admin accounts cannot be changed here.');
+  if (user.deletedAt) throw notFound('User not found.');
 
   const updated = await prisma.user.update({ where: { id: userId }, data: { status } });
   if (status === 'blocked') await revokeAllSessions(userId);

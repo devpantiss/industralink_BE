@@ -10,7 +10,7 @@ interface Message {
 /** Tells every HR user of the company (blocked users are skipped). */
 export async function notifyCompanyHr(companyId: string, message: Message) {
   const hrUsers = await prisma.user.findMany({
-    where: { companyId, role: 'employer', status: { not: 'blocked' } },
+    where: { companyId, role: 'employer', status: { not: 'blocked' }, deletedAt: null },
     select: { id: true },
   });
   await notify(hrUsers.map((hr) => ({ userId: hr.id, ...message })));

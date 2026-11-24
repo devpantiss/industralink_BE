@@ -23,3 +23,10 @@ adminUsersRouter.patch('/:id', admin.setStatus);
 export const userImpactRouter = Router();
 
 userImpactRouter.get('/:id', admin.userImpact);
+
+/** Mounted at /api/v1/admin (admins only): activity log and platform settings. */
+export const adminPlatformRouter = Router();
+
+adminPlatformRouter.get('/audit', admin.activityLog);
+adminPlatformRouter.get('/settings', admin.getSettings);
+adminPlatformRouter.patch('/settings', admin.updateSettings);

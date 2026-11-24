@@ -21,7 +21,7 @@ export async function adminSummary() {
     jobsWithoutPay,
     signups,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: 'worker' } }),
+    prisma.user.count({ where: { role: 'worker', deletedAt: null } }),
     prisma.company.count(),
     prisma.job.count({ where: { status: 'active', removedByAdmin: false } }),
     prisma.company.count({ where: { verification: 'pending' } }),

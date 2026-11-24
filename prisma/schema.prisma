@@ -110,6 +110,9 @@ model User {
   /// Employer users belong to a company. Several HR users can share one company later.
   companyId    String?       @db.Uuid
   lastLoginAt  DateTime?
+  /// Set when the person deleted their account. Personal data is erased; the row stays
+  /// so old applications and jobs still make sense to the other side.
+  deletedAt    DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

@@ -7,10 +7,13 @@ import { toUserDto } from '../users/user.mapper.js';
 import { recordAudit } from './audit.service.js';
 import * as adminJobs from './admin-jobs.service.js';
 import * as adminUsers from './admin-users.service.js';
+import { listActivity } from './activity-log.service.js';
+import * as platform from './platform-settings.service.js';
 import {
   adminJobListSchema,
   decideVerificationSchema,
   listVerificationsSchema,
+  platformSettingsSchema,
   removeJobSchema,
   userListSchema,
   userStatusSchema,
@@ -61,4 +64,17 @@ export async function listUsers(req: Request, res: Response) {
 
 export async function userImpact(req: Request, res: Response) {
   res.json(await adminUsers.userImpact(parseId(req.params.id, 'User')));
+}
+
+export async function activityLog(_req: Request, res: Response) {
+  res.json(await listActivity());
+}
+
+export async function getSettings(_req: Request, res: Response) {
+  res.json(await platform.getPlatformSettings());
+}
+
+export async function updateSettings(req: Request, res: Response) {
+  const changes = platformSettingsSchema.parse(req.body ?? {});
+  res.json(await platform.updatePlatformSettings(currentUser(req).id, changes));
 }

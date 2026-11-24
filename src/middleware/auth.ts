@@ -39,6 +39,20 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   next();
 }
 
+/**
+ * For pages anyone can use (e.g. the help form): with a valid login, sets `req.auth`
+ * like requireAuth; without one (or with an expired one) the request goes on as a guest.
+ */
+export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.get('authorization')) return next();
+  try {
+    await requireAuth(req, res, () => {});
+  } catch {
+    req.auth = undefined;
+  }
+  next();
+}
+
 /** Use after requireAuth. Allows only the given roles, e.g. requireRole('admin'). */
 export function requireRole(...roles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {

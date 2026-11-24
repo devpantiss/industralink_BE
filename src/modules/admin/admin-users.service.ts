@@ -12,6 +12,7 @@ async function listWorkers({ q, status }: UserListInput) {
   const digits = q?.replace(/\D/g, '');
   const where: Prisma.UserWhereInput = {
     role: 'worker',
+    deletedAt: null,
     status,
     ...(q && {
       OR: [
@@ -42,6 +43,7 @@ async function listWorkers({ q, status }: UserListInput) {
 async function listEmployers({ q, status }: UserListInput) {
   const where: Prisma.UserWhereInput = {
     role: 'employer',
+    deletedAt: null,
     // A blocked company counts as blocked even if the HR user itself is not.
     ...(status === 'blocked' && { OR: [{ status: 'blocked' }, { company: { status: 'blocked' } }] }),
     ...(status && status !== 'blocked' && { status, company: { status: { not: 'blocked' } } }),

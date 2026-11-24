@@ -202,3 +202,13 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 | POST   | `/auth/dev-login`           | `{ phone }` or `{ email }` or `{ userId }` | `AuthResponse`            | **Development only.** The apps' "Quick demo login" uses it.                   |
 | POST   | `/auth/dev-signup/worker`   | `{ name, phone }`                          | `AuthResponse`            | **Development only.** Test sign-up until the real login exists.               |
 | POST   | `/auth/dev-signup/employer` | `{ name, email, companyName }`             | `AuthResponse`            | **Development only.**                                                         |
+
+## Backend notes (reports, help, delete account, admin tools – Nov 2026)
+
+- `POST /jobs/:id/report` → 201 `{ ok }`. `details` is required when `reason` is `other`. 409 `ALREADY_REPORTED` while the same worker's report is still open. Every admin gets a notification.
+- `POST /admin/reports/:id`: `remove_job` uses `note` as the removal reason (default "Reported by workers and checked by our team"), closes the job and marks every open report for it `job_removed`. 409 `ALREADY_DONE` for a handled report.
+- `POST /support` → 201 `{ ok }`. Works with or without login (an expired token counts as a guest). Logged in: name and contact come from the account. Guest: `contact` (email or 10-digit mobile) is required. Limited to 5 per 10 minutes per IP.
+- `POST /admin/support/:id/close`: closing twice is fine. The user gets a notification if they have an account.
+- `POST /me/delete` with `{ confirm: "DELETE" }`: the account shows as "Deleted user", phone/email/profile/documents/photo/saved jobs are erased, open applications are withdrawn, every login ends. Employer: open jobs close; the company is hidden when no other HR user is left. Admins get 403 `ADMIN`. A deleted account gets 401 `ACCOUNT_DELETED`.
+- `GET /admin/audit`: newest 100 entries, in words (e.g. `action: "Blocked user"`, `target: "Raju – Asked workers for money"`).
+- `PATCH /admin/settings`: only real changes are logged. `autoApproveCompanies` applies to new employer sign-ups; `messagingEnabled` and `talentSearchEnabled` are used by chat and Find workers.

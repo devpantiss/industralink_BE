@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from './middleware/auth.js';
 import { settingsRouter } from './modules/settings/settings.routes.js';
 import {
   adminJobsRouter,
+  adminPlatformRouter,
   adminUsersRouter,
   userImpactRouter,
   verificationRouter,
@@ -25,6 +26,8 @@ import {
 } from './modules/jobs/job.routes.js';
 import { adminHomeRouter, employerHomeRouter, workerHomeRouter } from './modules/home/home.routes.js';
 import { notificationsRouter } from './modules/notifications/notification.routes.js';
+import { adminReportsRouter, reportJobRouter } from './modules/reports/report.routes.js';
+import { adminSupportRouter, supportRouter } from './modules/support/support.routes.js';
 import { workerProfileRouter } from './modules/workers/worker.routes.js';
 
 /**
@@ -38,6 +41,9 @@ apiRouter.use('/auth', authRouter);
 
 // Public pages (no login): shared job links and the landing site.
 apiRouter.use('/public/jobs', publicJobsRouter);
+
+// Help form: anyone, with or without login.
+apiRouter.use('/support', supportRouter);
 
 // Any logged-in user.
 const me = Router();
@@ -56,7 +62,7 @@ apiRouter.use('/worker', worker);
 
 // Workers: finding jobs and companies.
 const workerOnly = [requireAuth, requireRole('worker')];
-apiRouter.use('/jobs', ...workerOnly, workerJobsRouter, applyRouter);
+apiRouter.use('/jobs', ...workerOnly, workerJobsRouter, applyRouter, reportJobRouter);
 apiRouter.use('/companies', ...workerOnly, companyDirectoryRouter);
 
 // Employers.
@@ -72,9 +78,11 @@ apiRouter.use('/employer', employer);
 // Admins.
 const admin = Router();
 admin.use(requireAuth, requireRole('admin'));
-admin.use('/', adminHomeRouter);
+admin.use('/', adminHomeRouter, adminPlatformRouter);
 admin.use('/verifications', verificationRouter);
 admin.use('/jobs', adminJobsRouter);
 admin.use('/users', adminUsersRouter);
 admin.use('/user-impact', userImpactRouter);
+admin.use('/reports', adminReportsRouter);
+admin.use('/support', adminSupportRouter);
 apiRouter.use('/admin', admin);

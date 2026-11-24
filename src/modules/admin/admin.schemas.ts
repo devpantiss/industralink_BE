@@ -49,3 +49,11 @@ export const userListSchema = z.object({
 });
 
 export type UserListInput = z.infer<typeof userListSchema>;
+
+// ── Platform settings ──
+
+export const platformSettingsSchema = z.object({
+  autoApproveCompanies: z.boolean().optional(),
+  messagingEnabled: z.boolean().optional(),
+  talentSearchEnabled: z.boolean().optional(),
+});
