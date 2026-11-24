@@ -23,3 +23,20 @@ export const supportLimiter = rateLimit({
     code: 'TOO_MANY_REQUESTS',
   },
 });
+
+/**
+ * Chat: at most 20 messages a minute per person, against spam.
+ * Counted per user (not per IP), so many workers on one shared phone network are fine.
+ * Used after requireAuth. Also on in tests, so the limit itself can be tested.
+ */
+export const chatSendLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => req.auth!.user.id,
+  message: {
+    message: 'You are sending messages too fast. Please wait a minute.',
+    code: 'TOO_MANY_REQUESTS',
+  },
+});

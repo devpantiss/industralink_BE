@@ -363,7 +363,7 @@ async function main() {
   });
 
   // ── Applications, saved jobs, notifications ──
-  await prisma.application.create({
+  const rajanApplication = await prisma.application.create({
     data: {
       jobId: welderJob.id,
       workerId: rajan.id,
@@ -386,6 +386,43 @@ async function main() {
           bring: 'Aadhaar, ITI certificate',
         },
       },
+    },
+  });
+
+  // A short chat on Rajan's application. Rajan has not read HR's last message yet.
+  const chat = [
+    {
+      from: konarkHr,
+      at: daysAgo(4),
+      text: 'Hello Rajan, your interview is fixed. Please bring your ITI certificate.',
+    },
+    { from: rajan, at: daysAgo(3.9), text: 'Thank you sir. I will come on time.' },
+    { from: konarkHr, at: daysAgo(1), text: 'Please come to the Main Gate Workshop and ask for Pradeep.' },
+  ];
+  for (const message of chat) {
+    await prisma.message.create({
+      data: {
+        applicationId: rajanApplication.id,
+        senderId: message.from.id,
+        senderRole: message.from.role,
+        text: message.text,
+        createdAt: message.at,
+      },
+    });
+  }
+  const lastMessage = chat[chat.length - 1]!;
+  await prisma.conversation.create({
+    data: {
+      applicationId: rajanApplication.id,
+      workerId: rajan.id,
+      companyId: konark.id,
+      lastMessageAt: lastMessage.at,
+      lastMessageText: lastMessage.text,
+      lastSenderId: lastMessage.from.id,
+      workerUnread: 1,
+      workerLastReadAt: daysAgo(3.9),
+      companyLastReadAt: daysAgo(3.9),
+      createdAt: daysAgo(5),
     },
   });
 
@@ -415,6 +452,7 @@ async function main() {
     companies: await prisma.company.count(),
     jobs: await prisma.job.count(),
     applications: await prisma.application.count(),
+    messages: await prisma.message.count(),
   };
   console.warn('Seeded demo data:', counts);
 }

@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { AppError, conflict, invalid, notFound } from '../../lib/errors.js';
 import { applicantCounts, openJobWhere, viewableJobWhere } from '../jobs/job.queries.js';
@@ -105,6 +106,7 @@ export async function withdrawApplication(workerId: string, applicationId: strin
     where: { id: app.id },
     data: { stage: 'withdrawn', events: { create: { type: 'withdrawn', byUserId: workerId } } },
   });
+  chatsChanged({ applicationId: app.id });
   await notifyCompanyHr(app.job.companyId, {
     title: 'Application withdrawn',
     body: `A candidate withdrew their application for ${app.job.title}.`,
@@ -159,6 +161,7 @@ export async function replyToOffer(workerId: string, applicationId: string, inpu
       },
     },
   });
+  if (!accepted) chatsChanged({ applicationId: app.id });
 
   const worker = await prisma.user.findUniqueOrThrow({ where: { id: workerId }, select: { name: true } });
   await notifyCompanyHr(app.job.companyId, {

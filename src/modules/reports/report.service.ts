@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import type { ReportStatus } from '../../generated/prisma/client.js';
 import { AppError, conflict, notFound } from '../../lib/errors.js';
 import { recordAudit } from '../admin/audit.service.js';
@@ -82,7 +83,7 @@ export async function listReports(status: ReportStatus | 'all') {
  * report for it; "dismiss" closes only this report.
  */
 export async function resolveReport(adminId: string, reportId: string, input: ResolveReportInput) {
-  await prisma.$transaction(async (tx) => {
+  const removedJobId = await prisma.$transaction(async (tx) => {
     const report = await tx.jobReport.findUnique({
       where: { id: reportId },
       include: { job: { select: { removedByAdmin: true } } },
@@ -101,7 +102,7 @@ export async function resolveReport(adminId: string, reportId: string, input: Re
         where: { jobId: report.jobId, status: 'open' },
         data: { status: 'job_removed', ...resolved },
       });
-      return;
+      return report.jobId;
     }
 
     await tx.jobReport.update({ where: { id: report.id }, data: { status: 'dismissed', ...resolved } });
@@ -115,5 +116,8 @@ export async function resolveReport(adminId: string, reportId: string, input: Re
       },
       tx,
     );
+    return null;
   });
+  // Chats about a removed job become read-only.
+  if (removedJobId) chatsChanged({ jobId: removedJobId });
 }

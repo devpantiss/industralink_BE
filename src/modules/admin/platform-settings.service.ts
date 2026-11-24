@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { messagingSwitched } from '../messages/chat-events.js';
 import type { PlatformSettings } from '../../generated/prisma/client.js';
 import { recordAudit } from './audit.service.js';
 
@@ -53,5 +54,6 @@ export async function updatePlatformSettings(adminId: string, changes: PlatformS
     }
     return row;
   });
+  if (changed.includes('messagingEnabled')) messagingSwitched(updated.messagingEnabled);
   return toDto(updated);
 }

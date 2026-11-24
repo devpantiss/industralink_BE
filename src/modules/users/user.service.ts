@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import type { AccountStatus } from '../../generated/prisma/client.js';
 import { conflict, forbidden, notFound } from '../../lib/errors.js';
 import { revokeAllSessions } from '../auth/session.service.js';
@@ -90,5 +91,7 @@ export async function setUserStatus(userId: string, status: AccountStatus) {
 
   const updated = await prisma.user.update({ where: { id: userId }, data: { status } });
   if (status === 'blocked') await revokeAllSessions(userId);
+  // A blocked worker's chats become read-only for HR (and open again on unblock).
+  if (user.role === 'worker' && user.status !== status) chatsChanged({ workerId: userId });
   return updated;
 }

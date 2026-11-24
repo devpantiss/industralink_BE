@@ -2,6 +2,8 @@ import { prisma } from '../../db/prisma.js';
 import type { ApplicationStage, Prisma } from '../../generated/prisma/client.js';
 import { todayInIndia } from '../../lib/dates.js';
 import { conflict, invalid, notFound } from '../../lib/errors.js';
+import { OPEN_STAGES } from '../messages/chat-access.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import { candidateInclude, toCandidateDto } from './application.mapper.js';
 import { notifyWorker } from './application.notify.js';
 import type { CandidateListInput, MoveCandidateInput } from './application.schemas.js';
@@ -190,6 +192,14 @@ export async function moveCandidate(
       events: { create: events },
     });
 
+    // From shortlisting on, the worker and HR can chat. The chat is made once and kept,
+    // also if the worker is rejected later (it becomes read-only then).
+    if (OPEN_STAGES.includes(input.stage)) {
+      updates.conversation = {
+        upsert: { create: { workerId: app.workerId, companyId }, update: {} },
+      };
+    }
+
     const body = stageMessage(input.stage, job.title, company, input);
     if (body) messages.push({ title: 'Application update', body });
   }
@@ -197,6 +207,7 @@ export async function moveCandidate(
   if (Object.keys(updates).length > 0) {
     await prisma.application.update({ where: { id: app.id }, data: { ...updates, updatedAt: new Date() } });
   }
+  if (stageChanges) chatsChanged({ applicationId: app.id });
   for (const message of messages) {
     await notifyWorker(app.workerId, app.id, message.title, message.body);
   }

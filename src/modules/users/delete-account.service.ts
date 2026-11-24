@@ -1,4 +1,5 @@
 import { type Db, prisma } from '../../db/prisma.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import type { User } from '../../generated/prisma/client.js';
 import { forbidden } from '../../lib/errors.js';
 import { recordAudit } from '../admin/audit.service.js';
@@ -100,5 +101,8 @@ export async function deleteOwnAccount(user: User) {
   });
 
   await revokeAllSessions(user.id);
+  // Their chats become read-only for the other side.
+  if (user.role === 'worker') chatsChanged({ workerId: user.id });
+  else if (user.companyId) chatsChanged({ companyId: user.companyId });
   await Promise.all(files.map((key) => deleteFile(key)));
 }

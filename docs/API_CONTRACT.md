@@ -212,3 +212,43 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - `POST /me/delete` with `{ confirm: "DELETE" }`: the account shows as "Deleted user", phone/email/profile/documents/photo/saved jobs are erased, open applications are withdrawn, every login ends. Employer: open jobs close; the company is hidden when no other HR user is left. Admins get 403 `ADMIN`. A deleted account gets 401 `ACCOUNT_DELETED`.
 - `GET /admin/audit`: newest 100 entries, in words (e.g. `action: "Blocked user"`, `target: "Raju – Asked workers for money"`).
 - `PATCH /admin/settings`: only real changes are logged. `autoApproveCompanies` applies to new employer sign-ups; `messagingEnabled` and `talentSearchEnabled` are used by chat and Find workers.
+
+## Backend notes (chat – Nov 2026)
+
+- One chat per application, between the worker and the company's HR users (they share it). It opens when HR moves the worker to **shortlisted** (or later) and is never deleted. Messages are kept.
+- Either side can write first. It stays open through interview, offer and **hired**.
+- Read-only (`canSend: false`, sending gives 403 `NOT_ALLOWED`): rejected or withdrawn, job removed by admin, worker blocked or deleted, company blocked. Messaging off gives 403 `DISABLED`. Reading always works.
+- Not your chat → 404. Your application but not shortlisted yet → 403 `NOT_ALLOWED`. Admins → 403.
+- `GET /messages/:applicationId` → `{ thread, messages, hasMore }`, messages oldest first:
+  - no query: the newest 50, and marks the chat read for your side;
+  - `?before=<messageId>`: the 50 before it (scrolling up);
+  - `?after=<messageId>`: only newer ones (up to 200; refresh / catch-up). Doesn't mark read.
+  - A message id from another chat → 422 `BAD_CURSOR`.
+- `POST /messages/:applicationId/read` → `{ ok }`: marks read without loading messages.
+- `POST /messages/:applicationId` `{ text, clientId? }` → 201 `Message`. Text is trimmed, invisible characters are removed, line breaks are kept (at most 10 in a row), 1–1000 characters. `clientId` (app-made, letters/numbers/`-`/`_`, up to 64): sending the same one again returns the first message with 200 instead of saving a copy. 20 messages a minute per person (429).
+- `Message` also has, **only on your own messages**: `clientId?` and `seen` (the other side opened the chat after it was sent).
+- `unread` in `MessageThread` is the number of messages from the other side since you last opened the chat. Writing a message also counts as reading.
+- Chat messages don't create bell notifications; the Messages badge shows `unread`.
+- The inbox answers 304 when nothing changed (ETag), so polling is cheap.
+
+## Live chat updates (WebSocket – Nov 2026)
+
+Address: `ws://<host>/ws` (`wss://` on the live server), same port as the API. Workers and HR only.
+
+1. Connect, then send the login as the **first** message (never in the URL): `{ "type": "auth", "token": "<login token>" }`
+2. The server answers `{ "type": "ready" }`. No login within 10 s → closed.
+3. Events from the server (only "something changed"; load the data through the normal API):
+
+| Event               | Fields                                       | What the app does                                                                         |
+| ------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `message:new`       | `message` (a `Message`, as you would see it) | Add it / refresh the chat and the inbox                                                   |
+| `chat:read`         | `applicationId`, `side`, `at`                | `side` = who opened the chat. Refresh: ticks turn ✓✓, or your other device's badge clears |
+| `chat:typing`       | `applicationId`, `side`                      | Show "typing…" for about 4 s                                                              |
+| `chat:changed`      | `applicationId`                              | The chat opened, closed or changed stage: refresh it                                      |
+| `messaging:changed` | `enabled`                                    | Admin switched messaging: refresh chats                                                   |
+
+4. The app may send `{ "type": "typing", "applicationId": "..." }` (the server passes on at most one every 2.5 s). **Sending messages stays on `POST /messages/:applicationId`.**
+
+Close codes: `4001` log in again (logged out, blocked, session ended – don't retry) · `4003` admins (don't retry) · `4008` no login in time · `4029` more than 10 connections for one person. Anything else: reconnect after 1 s, 2 s, 5 s, 10 s, 30 s…, then reload the chats (or use `?after=`), so nothing is missed.
+
+The server pings every 30 s and checks the session again; logging out or blocking closes the connection at once. Browsers from sites not in `CORS_ORIGINS` are refused (the phone app sends no origin and just logs in).

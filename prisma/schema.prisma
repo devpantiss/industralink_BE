@@ -7,7 +7,8 @@
 // - Catalogue values that will grow (trade, sector, document type, benefits...) are
 //   plain text, checked by the API. Adding a new trade needs no migration.
 // - Files are stored as a storage key, never a full URL.
-// - Counts (applicants, unread...) are calculated, not stored.
+// - Counts (applicants...) are calculated, not stored. Exception: chat unread counts
+//   live on the conversation row, because the inbox is refreshed very often.
 
 generator client {
   provider            = "prisma-client"
@@ -407,13 +408,14 @@ model Application {
   createdAt     DateTime         @default(now()) /// = applied at
   updatedAt     DateTime         @updatedAt
 
-  job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  worker    WorkerProfile      @relation(fields: [workerId], references: [userId], onDelete: Cascade)
-  document  WorkerDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  events    ApplicationEvent[]
-  interview Interview?
-  offer     Offer?
-  messages  Message[]
+  job          Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker       WorkerProfile      @relation(fields: [workerId], references: [userId], onDelete: Cascade)
+  document     WorkerDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  events       ApplicationEvent[]
+  interview    Interview?
+  offer        Offer?
+  conversation Conversation?
+  messages     Message[]
 
   @@unique([jobId, workerId]) /// one application per job
   @@index([workerId])
@@ -493,18 +495,50 @@ model Invite {
 // ─────────────────────── Communication ───────────────────────
 
 /// Chat between the worker and the employer of one application.
+/// One chat per application, between the worker and the company's HR.
+/// Created when HR moves the worker to shortlisted (or later), and never deleted.
+/// It keeps the inbox summary (last message, unread counts), so the inbox is one
+/// small query instead of counting through every message.
+model Conversation {
+  applicationId     String    @id @db.Uuid
+  workerId          String    @db.Uuid
+  companyId         String    @db.Uuid
+  lastMessageAt     DateTime?
+  lastMessageText   String? /// first 120 characters, for the inbox
+  lastSenderId      String?   @db.Uuid
+  /// Messages the side has not read yet. +1 on every message from the other side,
+  /// back to 0 when the side opens the chat.
+  workerUnread      Int       @default(0)
+  companyUnread     Int       @default(0)
+  /// When each side last opened the chat. Gives the "seen" ticks.
+  workerLastReadAt  DateTime?
+  companyLastReadAt DateTime?
+  createdAt         DateTime  @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, lastMessageAt(sort: Desc)])
+  @@index([companyId, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
 model Message {
-  id            String    @id @default(uuid()) @db.Uuid
-  applicationId String    @db.Uuid
-  senderId      String    @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  senderId      String   @db.Uuid
+  /// worker or employer, so the apps know which side wrote it without another lookup.
+  senderRole    Role
   text          String
-  readAt        DateTime?
-  createdAt     DateTime  @default(now())
+  /// Id made by the app before sending. Sending the same message again (bad network)
+  /// finds this one instead of saving it twice.
+  clientId      String?
+  createdAt     DateTime @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
-  @@index([applicationId, createdAt])
+  @@unique([senderId, clientId])
+  @@index([applicationId, createdAt, id])
   @@map("messages")
 }
 

@@ -73,6 +73,8 @@ Full details (bodies, answers, errors): `docs/API_CONTRACT.md`. All paths below 
 | Employer  | `GET/POST /employer/jobs`, `GET/PATCH/DELETE /employer/jobs/:id`                                                                                                                                                                                                                                                                                                                 |
 | Employer  | `GET /employer/jobs/:id/candidates`, `GET /employer/candidates`, `PATCH /employer/applications/:id`, `POST /employer/applications/:id/view`                                                                                                                                                                                                                                      |
 | Admin     | `GET /admin/summary`, `GET /admin/users`, `GET /admin/user-impact/:id`, `GET /admin/verifications`, `POST /admin/verifications/company/:id`, `GET /admin/jobs`, `POST /admin/jobs/:id/remove`, `PATCH /admin/users/:id`, `GET /admin/reports`, `POST /admin/reports/:id`, `GET /admin/support`, `POST /admin/support/:id/close`, `GET /admin/audit`, `GET/PATCH /admin/settings` |
+| Chat      | Workers and HR (not admins): `GET /messages`, `GET /messages/:applicationId` (`?before=` / `?after=`), `POST /messages/:applicationId`, `POST /messages/:applicationId/read`                                                                                                                                                                                                     |
+| Live      | `ws://<host>/ws`: live chat updates (new message, seen, typing). Log in with `{ type: "auth", token }` as the first message. See `docs/API_CONTRACT.md`.                                                                                                                                                                                                                         |
 | Dev only  | `GET /auth/dev-users`, `POST /auth/dev-login`, `POST /auth/dev-signup/worker`, `POST /auth/dev-signup/employer`                                                                                                                                                                                                                                                                  |
 
 Dev login is temporary (until the real login method is chosen) and is **not available in production**.
@@ -85,7 +87,7 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 173 tests, uses the separate test database
+npm test           # about 209 tests, uses the separate test database
 ```
 
 **2. By hand with the Postman app**
@@ -93,7 +95,7 @@ npm test           # about 173 tests, uses the separate test database
 1. `npm run db:seed` for fresh demo data, then `npm run dev`.
 2. In the Postman app: **Import** → pick the file `postman/IndustriaLink.postman_collection.json`.
 3. Run folder **0. Start here** first (it logs in and saves the tokens), then any other request,
-   or right-click the collection → **Run collection** to run all 99 requests.
+   or right-click the collection → **Run collection** to run all 109 requests.
 4. Bodies must be **raw → JSON** (a "Text" body gets `415 NOT_JSON`).
    For the 2 upload requests, choose a file once: `postman/sample-resume.pdf`.
 

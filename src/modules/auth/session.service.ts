@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { closeSession, closeUser } from '../../realtime/live-hub.js';
 import { prisma } from '../../db/prisma.js';
 import type { User } from '../../generated/prisma/client.js';
 import { signToken } from '../../lib/jwt.js';
@@ -42,6 +43,7 @@ export async function revokeSession(sessionId: string): Promise<void> {
     where: { id: sessionId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+  closeSession(sessionId);
 }
 
 /** Logs out every device of a user (used when blocking a user or resetting a password). */
@@ -50,4 +52,5 @@ export async function revokeAllSessions(userId: string): Promise<void> {
     where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+  closeUser(userId);
 }

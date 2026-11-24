@@ -1,4 +1,5 @@
 import { type Db, prisma } from '../../db/prisma.js';
+import { chatsChanged } from '../messages/chat-events.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { AppError, notFound } from '../../lib/errors.js';
 import { toJobDto } from '../jobs/job.mapper.js';
@@ -27,8 +28,10 @@ export async function listJobsForAdmin({ q, status }: { q?: string; status?: 'ac
 }
 
 /** Takes a job down (fake, unsafe...): closes it, tells the company and records the action. */
-export function removeJob(adminId: string, jobId: string, reason: string) {
-  return prisma.$transaction((tx) => removeJobWith(tx, adminId, jobId, reason));
+export async function removeJob(adminId: string, jobId: string, reason: string) {
+  await prisma.$transaction((tx) => removeJobWith(tx, adminId, jobId, reason));
+  // Chats about this job become read-only.
+  chatsChanged({ jobId });
 }
 
 /** Same as removeJob, inside a transaction the caller already started. */

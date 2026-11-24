@@ -25,6 +25,7 @@ import {
   workerJobsRouter,
 } from './modules/jobs/job.routes.js';
 import { adminHomeRouter, employerHomeRouter, workerHomeRouter } from './modules/home/home.routes.js';
+import { messagesRouter } from './modules/messages/message.routes.js';
 import { notificationsRouter } from './modules/notifications/notification.routes.js';
 import { adminReportsRouter, reportJobRouter } from './modules/reports/report.routes.js';
 import { adminSupportRouter, supportRouter } from './modules/support/support.routes.js';
@@ -51,6 +52,9 @@ me.use(requireAuth);
 me.use('/', settingsRouter);
 apiRouter.use('/me', me);
 apiRouter.use('/notifications', requireAuth, notificationsRouter);
+
+// Chat: workers and employers only. Admins can't read private messages.
+apiRouter.use('/messages', requireAuth, requireRole('worker', 'employer'), messagesRouter);
 
 // Workers.
 const worker = Router();

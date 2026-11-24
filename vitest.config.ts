@@ -14,6 +14,8 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl,
       UPLOAD_DIR: '.test-uploads',
       DEV_LOGIN: 'true',
+      // Fixed, so the live-connection origin check is tested the same way everywhere.
+      CORS_ORIGINS: 'http://localhost:5173',
     },
     globalSetup: ['./tests/global-setup.ts'],
     fileParallelism: false,

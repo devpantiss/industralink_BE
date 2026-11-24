@@ -9,13 +9,10 @@ import { assertCanUseAccount } from '../modules/users/account-access.js';
 const LAST_USED_UPDATE_MS = 10 * 60 * 1000;
 
 /**
- * Allows the request only with a valid `Authorization: Bearer <token>` header
- * whose session is still open and whose user is not blocked.
- * Sets `req.auth` for the next handlers.
+ * Checks a login token: valid signature, session still open, user allowed in.
+ * Used by every protected HTTP request and by the live chat connection.
  */
-export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  const header = req.get('authorization');
-  const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+export async function authenticate(token: string | undefined) {
   if (!token) throw unauthorized();
 
   const payload = verifyToken(token);
@@ -34,8 +31,18 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   if (now.getTime() - session.lastUsedAt.getTime() > LAST_USED_UPDATE_MS) {
     await prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: now } });
   }
+  return { user: session.user, sessionId: session.id };
+}
 
-  req.auth = { user: session.user, sessionId: session.id };
+/**
+ * Allows the request only with a valid `Authorization: Bearer <token>` header
+ * whose session is still open and whose user is not blocked.
+ * Sets `req.auth` for the next handlers.
+ */
+export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.get('authorization');
+  const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+  req.auth = await authenticate(token);
   next();
 }
 
