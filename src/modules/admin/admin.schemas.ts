@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { blankToUndefined } from '../../lib/validation.js';
+import { blankToUndefined, optionalText } from '../../lib/validation.js';
 
 // ── Company verification ──
 
@@ -38,6 +38,8 @@ export const removeJobSchema = z.object({
 
 export const userStatusSchema = z.object({
   status: z.enum(['active', 'blocked'], 'Choose active or blocked.'),
+  /** Why the admin blocked them. Saved in the activity log only. */
+  reason: optionalText(300),
 });
 
 export const userListSchema = z.object({

@@ -42,7 +42,7 @@ export async function removeJob(req: Request, res: Response) {
 
 /** Block or unblock a worker or employer. Blocking logs them out everywhere. */
 export async function setStatus(req: Request, res: Response) {
-  const { status } = userStatusSchema.parse(req.body ?? {});
+  const { status, reason } = userStatusSchema.parse(req.body ?? {});
   const admin = currentUser(req);
   const user = await setUserStatus(parseId(req.params.id, 'User'), status);
   await recordAudit({
@@ -50,6 +50,7 @@ export async function setStatus(req: Request, res: Response) {
     action: status === 'blocked' ? 'user.block' : 'user.unblock',
     targetType: 'user',
     targetId: user.id,
+    ...(reason && { details: { reason } }),
   });
   res.json(toUserDto(user));
 }

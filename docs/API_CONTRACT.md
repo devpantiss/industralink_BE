@@ -7,6 +7,16 @@
 The endpoints the dashboard expects. The mock API in `src/mocks/handlers.ts` already implements all of them, so it doubles as a working reference.
 The types (`User`, `Job`, …) are defined in `src/types/index.ts`.
 
+## Version 1 decisions (locked 23 Nov 2026)
+
+Both apps (web dashboard and mobile) follow this file. A change goes here first, then into the backend, then into both apps.
+
+- **Account status** is `active | pending | blocked`. There is no `suspended`. Blocking can carry an optional `reason`, which is saved in the admin activity log only.
+- **Not in version 1** (can be added later, in this order: contract → backend → both apps): the HR private note on a candidate, the offer "reply by" date, the interview `note`, the "date joined" when hiring, the "Best fit" candidate sort / `match` score, and the `verifiedAadhaar` / `verifiedIti` flags (documents are not verified).
+- **Uploads** are real files (`multipart/form-data` with `file` and `type`), never JSON with a link.
+- **Changing a candidate's stage** uses one flat body: `PATCH /employer/applications/:id` with `{ stage, note?, notify?, interview?, offer? }`.
+- **Admin users list** takes `role` = `worker` or `employer` (there is no "all").
+
 ## Conventions
 
 - Base URL: `/api/v1`. JSON in, JSON out.
@@ -87,7 +97,7 @@ Moving a candidate sends the worker a notification (rejection only if `notify` i
 | GET    | `/admin/jobs`                      | query: `q?`, `status?`                         | `AdminJobRow[]`                                                                                                                                      |                                                 |
 | POST   | `/admin/jobs/:id/remove`           | `{ reason }`                                   | `{ ok }` (closes the job, tells the company)                                                                                                         | 422                                             |
 | GET    | `/admin/users`                     | query: `role`, `q?`, `status?`                 | `AdminUserRow[]`                                                                                                                                     |                                                 |
-| PATCH  | `/admin/users/:id`                 | `{ status }`                                   | `{ ok }`                                                                                                                                             | 400 `SELF`                                      |
+| PATCH  | `/admin/users/:id`                 | `{ status, reason? }`                          | `{ ok }`                                                                                                                                             | 400 `SELF`                                      |
 | GET    | `/admin/user-impact/:id`           |                                                | `{ activeJobs, applicants }` (shown before blocking a company)                                                                                       |                                                 |
 | GET    | `/admin/audit`                     |                                                | `AuditEntry[]`                                                                                                                                       |                                                 |
 
@@ -181,3 +191,14 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - `GET /admin/users`: query `role` (`worker` default \| `employer`), `q?`, `status?`. Max 300 rows, newest first. An employer whose company is blocked shows as `blocked`.
 - `GET /admin/user-impact/:id`: `{ activeJobs, applicants }` for an employer; zeros for others.
 - `POST /notifications/:id/read` answers `{ ok }` even for an unknown id (nothing changes).
+
+## Also available (not in the tables above)
+
+| Method | Path                        | Body / query                               | Returns                   | Notes                                                                         |
+| ------ | --------------------------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------- |
+| GET    | `/public/jobs`              | query: `JobSearchParams`                   | `Paginated<JobForWorker>` | Job search without login (landing site). Same filters as `/jobs`, no `saved`. |
+| DELETE | `/jobs/:id/save`            |                                            | `{ saved: false }`        | Unsave a job.                                                                 |
+| GET    | `/auth/dev-users`           |                                            | demo accounts             | **Development only** (`DEV_LOGIN=true`). Never on the live server.            |
+| POST   | `/auth/dev-login`           | `{ phone }` or `{ email }` or `{ userId }` | `AuthResponse`            | **Development only.** The apps' "Quick demo login" uses it.                   |
+| POST   | `/auth/dev-signup/worker`   | `{ name, phone }`                          | `AuthResponse`            | **Development only.** Test sign-up until the real login exists.               |
+| POST   | `/auth/dev-signup/employer` | `{ name, email, companyName }`             | `AuthResponse`            | **Development only.**                                                         |

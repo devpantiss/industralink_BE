@@ -98,6 +98,17 @@ describe('admin blocks and unblocks users', () => {
     expect((await request(app).post('/api/v1/auth/dev-login').send({ userId: worker.id })).status).toBe(200);
   });
 
+  it('saves the optional block reason in the activity log', async () => {
+    const worker = await createWorker();
+    await request(app)
+      .patch(`/api/v1/admin/users/${worker.id}`)
+      .set(admin)
+      .send({ status: 'blocked', reason: 'Asked workers for money' })
+      .expect(200);
+    const entry = await prisma.auditLog.findFirst({ where: { targetId: worker.id, action: 'user.block' } });
+    expect(entry?.details).toEqual({ reason: 'Asked workers for money' });
+  });
+
   it("can't change an admin, and only admins can block", async () => {
     const other = await adminUser();
     expect(
