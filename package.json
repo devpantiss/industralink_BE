@@ -20,6 +20,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:clear": "tsx prisma/clear.ts",
     "db:reset": "prisma migrate reset --force && prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",

@@ -20,6 +20,7 @@ import { companyDirectoryRouter } from './modules/companies/company-directory.ro
 import { companyRouter } from './modules/companies/company.routes.js';
 import {
   employerJobsRouter,
+  publicFeedRouter,
   publicJobsRouter,
   savedJobsRouter,
   workerJobsRouter,
@@ -42,6 +43,7 @@ apiRouter.use('/auth', authRouter);
 
 // Public pages (no login): shared job links and the landing site.
 apiRouter.use('/public/jobs', publicJobsRouter);
+apiRouter.use('/public/feed', publicFeedRouter);
 
 // Help form: anyone, with or without login.
 apiRouter.use('/support', supportRouter);

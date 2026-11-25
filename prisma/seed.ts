@@ -9,7 +9,6 @@
  * Demo logins: worker 9876543210 (Ramesh), HR hr@konark.demo, admin admin@industrialink.demo.
  */
 import 'dotenv/config';
-import { rmSync } from 'node:fs';
 import { prisma } from '../src/db/prisma.js';
 import type {
   ApplicationStage,
@@ -19,6 +18,7 @@ import type {
   User,
 } from '../src/generated/prisma/client.js';
 import { previewOf } from '../src/modules/messages/message.mapper.js';
+import { assertLocalDatabase, wipe } from './local-data.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY);
@@ -29,30 +29,6 @@ const dayAt = (days: number, hour: number) => {
   date.setHours(hour, 0, 0, 0);
   return date;
 };
-
-/** Empties every table, and the uploaded files that belonged to them. */
-async function wipe() {
-  const tables = await prisma.$queryRaw<{ tablename: string }[]>`
-    SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
-  const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
-  if (list) await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} CASCADE`);
-  rmSync(process.env.UPLOAD_DIR ?? 'uploads', { recursive: true, force: true });
-}
-
-/** The demo data wipes every table, so it only runs on a database on this computer. */
-function assertLocalDatabase() {
-  const url = process.env.DATABASE_URL ?? '';
-  const host = (() => {
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return '';
-    }
-  })();
-  if (process.env.NODE_ENV === 'production' || !['localhost', '127.0.0.1', '::1'].includes(host)) {
-    throw new Error(`Refusing to load demo data: "${host || 'unknown'}" is not a local database.`);
-  }
-}
 
 // ───────────────────────── Builders ─────────────────────────
 

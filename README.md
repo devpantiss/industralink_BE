@@ -27,7 +27,8 @@ Check: `curl localhost:4000/health` → `{"status":"ok","database":"up"}`
 | `test`                          | Tests (use the separate `industrialink_test` database)            |
 | `typecheck` / `lint` / `format` | Code checks                                                       |
 | `db:migrate`                    | After changing `prisma/schema.prisma`: create + apply a migration |
-| `db:seed`                       | Clear all tables and load demo data                               |
+| `db:seed`                       | Clear all data and uploads, then load demo data (local only)      |
+| `db:clear`                      | Clear all data and uploads, no demo data (local only)             |
 | `db:reset`                      | Drop everything, re-run migrations and seed                       |
 | `db:studio`                     | Browse the database in the browser                                |
 
@@ -87,7 +88,7 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 210 tests, uses the separate test database
+npm test           # about 211 tests, uses the separate test database
 ```
 
 **2. By hand with the Postman app**
@@ -95,7 +96,7 @@ npm test           # about 210 tests, uses the separate test database
 1. `npm run db:seed` for fresh demo data, then `npm run dev`.
 2. In the Postman app: **Import** → pick the file `postman/IndustriaLink.postman_collection.json`.
 3. Run folder **0. Start here** first (it logs in and saves the tokens), then any other request,
-   or right-click the collection → **Run collection** to run all 109 requests.
+   or right-click the collection → **Run collection** to run all 110 requests.
 4. Bodies must be **raw → JSON** (a "Text" body gets `415 NOT_JSON`).
    For the 2 upload requests, choose a file once: `postman/sample-resume.pdf`.
 

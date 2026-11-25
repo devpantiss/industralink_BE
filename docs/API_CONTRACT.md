@@ -4,8 +4,7 @@
 > When an endpoint changes, update it here first. What is already built: see the README "API so far" table.
 > The backend sends phone numbers as 10 digits (the apps add +91).
 
-The endpoints the dashboard expects. The mock API in `src/mocks/handlers.ts` already implements all of them, so it doubles as a working reference.
-The types (`User`, `Job`, …) are defined in `src/types/index.ts`.
+The endpoints both apps use. The types (`User`, `Job`, …) match `src/types/index.ts` in each app.
 
 ## Version 1 decisions (locked 23 Nov 2026)
 
@@ -105,16 +104,17 @@ Every admin decision is written to the audit log.
 
 ## Added after the gap review
 
-Shapes are in `src/types/index.ts`. Mock versions are in `src/mocks/handlers.ts`.
+Shapes are in the apps' `src/types/index.ts`.
 
 ### Public (no login)
 
-| Method | Path                    | Body / query                          | Returns                 | Notes                                                                                                                       |
-| ------ | ----------------------- | ------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/public/jobs/:id`      |                                       | `Job` without `hrPhone` | The page a shared WhatsApp link opens. 404 for drafts or blocked companies.                                                 |
-| POST   | `/support`              | `{ topic, message, name?, contact? }` | `{ ok }`                | Help request. If logged in, contact comes from the account.                                                                 |
-| POST   | `/auth/password/forgot` | `{ email }`                           | `{ ok }`                | Same reply whether or not the email exists. The real API emails a link valid for 1 hour (the mock returns `demoResetLink`). |
-| POST   | `/auth/password/reset`  | `{ token, password }`                 | `{ ok, role }`          | 410 `EXPIRED`, 422                                                                                                          |
+| Method | Path                    | Body / query                          | Returns                 | Notes                                                                                                               |
+| ------ | ----------------------- | ------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/public/jobs/:id`      |                                       | `Job` without `hrPhone` | The page a shared WhatsApp link opens. 404 for drafts or blocked companies.                                         |
+| GET    | `/public/feed`          |                                       | `JobFeed`               | Open jobs and counts for the landing site, without company names or phones. Any site may read it; cached 5 minutes. |
+| POST   | `/support`              | `{ topic, message, name?, contact? }` | `{ ok }`                | Help request. If logged in, contact comes from the account.                                                         |
+| POST   | `/auth/password/forgot` | `{ email }`                           | `{ ok }`                | Same reply whether or not the email exists. The real API emails a link valid for 1 hour.                            |
+| POST   | `/auth/password/reset`  | `{ token, password }`                 | `{ ok, role }`          | 410 `EXPIRED`, 422                                                                                                  |
 
 ### Any logged-in user
 

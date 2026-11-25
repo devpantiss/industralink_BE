@@ -3123,6 +3123,35 @@
           "response": []
         },
         {
+          "name": "Job feed for the landing site",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/feed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "public",
+                "feed"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Worker pages need login (401)",
           "event": [
             {

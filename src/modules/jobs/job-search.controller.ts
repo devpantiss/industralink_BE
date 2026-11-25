@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { parseId } from '../../lib/validation.js';
 import { currentUser } from '../../middleware/auth.js';
+import { buildJobFeed } from './job-feed.service.js';
 import * as search from './job-search.service.js';
 import { jobSearchSchema } from './job.schemas.js';
 
@@ -35,4 +36,10 @@ export async function searchPublicJobs(req: Request, res: Response) {
 
 export async function getPublicJob(req: Request, res: Response) {
   res.json(await search.getPublicJob(parseId(req.params.id, 'Job')));
+}
+
+/** Open to every site (public data), and cached for 5 minutes. */
+export async function jobFeed(_req: Request, res: Response) {
+  res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' });
+  res.json(await buildJobFeed());
 }

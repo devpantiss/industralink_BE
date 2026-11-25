@@ -18,6 +18,10 @@ export const publicJobsRouter = Router();
 publicJobsRouter.get('/', jobs.searchPublicJobs);
 publicJobsRouter.get('/:id', jobs.getPublicJob);
 
+/** Mounted at /api/v1/public/feed (no login): the landing site's job feed. */
+export const publicFeedRouter = Router();
+publicFeedRouter.get('/', jobs.jobFeed);
+
 /** Mounted at /api/v1/employer/jobs (employers only). */
 export const employerJobsRouter = Router();
 employerJobsRouter.get('/', employerJobs.list);
