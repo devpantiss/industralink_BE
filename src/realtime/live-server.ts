@@ -39,11 +39,17 @@ function parseIncoming(data: RawData) {
 
 /**
  * Browsers send their page address (Origin). On the live server only our own sites may
- * connect. The phone app sends no Origin, and that is fine: it must still log in.
+ * connect. The phone app sends either no Origin or the API's own address (React Native
+ * adds it by itself), and both are fine: it must still log in.
  */
 function isAllowedOrigin(request: IncomingMessage): boolean {
   const origin = request.headers.origin;
-  return !origin || env.CORS_ORIGINS.length === 0 || env.CORS_ORIGINS.includes(origin);
+  if (!origin || env.CORS_ORIGINS.length === 0 || env.CORS_ORIGINS.includes(origin)) return true;
+  try {
+    return new URL(origin).host === request.headers.host;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -86,9 +92,10 @@ export function attachLiveServer(server: Server) {
       }
     });
 
-    socket.on('close', () => {
+    socket.on('close', (code) => {
       clearTimeout(authTimer);
       if (client) removeClient(client);
+      logger.debug({ userId: client?.user.id, code }, 'Live: closed');
     });
     socket.on('error', (error) => logger.warn({ err: error }, 'Live connection error'));
   });
@@ -131,6 +138,7 @@ async function login(socket: WebSocket, token: string): Promise<LiveClient | nul
   });
   addClient(client);
   socket.send(JSON.stringify({ type: 'ready' }));
+  logger.debug({ userId: client.user.id, role: client.user.role }, 'Live: connected');
   return client;
 }
 

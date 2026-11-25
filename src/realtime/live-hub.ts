@@ -77,11 +77,6 @@ export function removeClient(client: LiveClient) {
   if (client.user.companyId) removeFrom(byCompany, client.user.companyId, client);
 }
 
-/** Is the person connected right now? (Phone push is only for people who aren't.) */
-export function isOnline(userId: string): boolean {
-  return connectionsOf(userId) > 0;
-}
-
 function send(client: LiveClient, event: LiveEvent) {
   if (client.socket.readyState !== client.socket.OPEN) return;
   client.socket.send(JSON.stringify(event), (error) => {

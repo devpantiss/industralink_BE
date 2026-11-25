@@ -23,6 +23,8 @@ export default function setup() {
     ...process.env,
     NODE_ENV: 'test',
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? fileEnv.TEST_DATABASE_URL,
+    // The seed clears this folder, so it must be the tests' own (as in vitest.config.ts).
+    UPLOAD_DIR: '.test-uploads',
   };
   run('npx prisma migrate deploy', env);
   run('npx prisma db seed', env);

@@ -133,6 +133,14 @@ describe('logging in to the live connection', () => {
     await new Promise((resolve) => ours.on('open', resolve));
     ours.close();
   });
+
+  it('the phone app is allowed: React Native sends the API address as Origin', async () => {
+    const phone = new WebSocket(wsUrl, {
+      headers: { Origin: new URL(wsUrl).origin.replace('ws:', 'http:') },
+    });
+    await new Promise((resolve) => phone.on('open', resolve));
+    phone.close();
+  });
 });
 
 describe('chat events', () => {

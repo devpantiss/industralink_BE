@@ -87,7 +87,7 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 209 tests, uses the separate test database
+npm test           # about 210 tests, uses the separate test database
 ```
 
 **2. By hand with the Postman app**

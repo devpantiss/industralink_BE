@@ -99,7 +99,7 @@ const lastTyping = new Map<string, number>();
 export async function onTyping(user: User, applicationId: string) {
   const key = `${user.id}:${applicationId}`;
   const now = Date.now();
-  if (now - (lastTyping.get(key) ?? 0) < TYPING_GAP_MS) return;
+  if (now - (lastTyping.get(key) ?? 0) < TYPING_GAP_MS) return logger.debug({ key }, 'Typing: too soon');
   lastTyping.set(key, now);
   // Keep the map small: forget old entries now and then.
   if (lastTyping.size > 10_000) {
@@ -112,6 +112,9 @@ export async function onTyping(user: User, applicationId: string) {
     where: { applicationId, ...owner.where },
     include: chatInclude,
   });
-  if (!chat || whyChatIsClosed(chat, await isMessagingOn())) return;
+  if (!chat || whyChatIsClosed(chat, await isMessagingOn())) {
+    return logger.debug({ key }, 'Typing: not your chat, or the chat is closed');
+  }
   sendToSide(chat, otherSide(owner.side), { type: 'chat:typing', applicationId, side: owner.side });
+  logger.debug({ key }, 'Typing: sent to the other side');
 }

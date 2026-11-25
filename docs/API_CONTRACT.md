@@ -251,4 +251,4 @@ Address: `ws://<host>/ws` (`wss://` on the live server), same port as the API. W
 
 Close codes: `4001` log in again (logged out, blocked, session ended – don't retry) · `4003` admins (don't retry) · `4008` no login in time · `4029` more than 10 connections for one person. Anything else: reconnect after 1 s, 2 s, 5 s, 10 s, 30 s…, then reload the chats (or use `?after=`), so nothing is missed.
 
-The server pings every 30 s and checks the session again; logging out or blocking closes the connection at once. Browsers from sites not in `CORS_ORIGINS` are refused (the phone app sends no origin and just logs in).
+The server pings every 30 s and checks the session again; logging out or blocking closes the connection at once. Browsers from sites not in `CORS_ORIGINS` are refused. The phone app sends no origin or the API's own address (React Native adds it), which is allowed; it must still log in.
