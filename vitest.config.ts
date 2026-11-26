@@ -16,6 +16,8 @@ export default defineConfig({
       DEV_LOGIN: 'true',
       // Fixed, so the live-connection origin check is tested the same way everywhere.
       CORS_ORIGINS: 'http://localhost:5173',
+      // Tests never reach Firebase; they use a fake sender (tests/push.test.ts).
+      FIREBASE_SERVICE_ACCOUNT: '',
     },
     globalSetup: ['./tests/global-setup.ts'],
     fileParallelism: false,

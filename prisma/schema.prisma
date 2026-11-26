@@ -127,6 +127,7 @@ model User {
   invitesSent         Invite[]
   messagesSent        Message[]
   notifications       Notification[]
+  pushTokens          PushToken[]
   reportsMade         JobReport[]          @relation("ReportReporter")
   reportsResolved     JobReport[]          @relation("ReportResolver")
   supportTickets      SupportTicket[]
@@ -149,10 +150,41 @@ model Session {
   lastUsedAt DateTime  @default(now())
   createdAt  DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushToken PushToken?
 
   @@index([userId])
   @@map("sessions")
+}
+
+enum PushPlatform {
+  android
+  ios
+  web
+}
+
+/// What the phone gave us: an FCM registration token (old) or a Firebase installation ID (new).
+enum PushIdKind {
+  token
+  fid
+}
+
+/// Where to send push notifications for one login (one phone or browser).
+/// Tied to the session, so logging out or being blocked stops the pushes.
+model PushToken {
+  token     String       @id
+  kind      PushIdKind   @default(token)
+  platform  PushPlatform
+  sessionId String       @unique @db.Uuid
+  userId    String       @db.Uuid
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
 }
 
 /// Phone OTP codes (used once an SMS provider is chosen). The code is stored hashed.

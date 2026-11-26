@@ -3,7 +3,7 @@ import type { SupportTicket, User } from '../../generated/prisma/client.js';
 import { invalid, notFound } from '../../lib/errors.js';
 import { toNationalPhone } from '../../lib/phone.js';
 import { recordAudit } from '../admin/audit.service.js';
-import { notify } from '../notifications/notification.service.js';
+import { addNotifications, pushNotifications } from '../notifications/notification.service.js';
 import type { SupportRequestInput } from './support.schemas.js';
 
 /** How the team can reply to a logged-in user. */
@@ -56,26 +56,25 @@ export async function closeTicket(adminId: string, ticketId: string) {
   if (!ticket) throw notFound('Request not found.');
   if (ticket.status === 'closed') return;
 
+  const notices = ticket.userId
+    ? [
+        {
+          userId: ticket.userId,
+          title: 'Your help request was answered',
+          body: `About "${ticket.topic}". Our team has handled it.`,
+        },
+      ]
+    : [];
   await prisma.$transaction(async (tx) => {
     await tx.supportTicket.update({
       where: { id: ticket.id },
       data: { status: 'closed', closedAt: new Date() },
     });
-    if (ticket.userId) {
-      await notify(
-        [
-          {
-            userId: ticket.userId,
-            title: 'Your help request was answered',
-            body: `About "${ticket.topic}". Our team has handled it.`,
-          },
-        ],
-        tx,
-      );
-    }
+    await addNotifications(notices, tx);
     await recordAudit(
       { actorId: adminId, action: 'support.close', targetType: 'ticket', targetId: ticket.id },
       tx,
     );
   });
+  pushNotifications(notices);
 }

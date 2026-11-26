@@ -4,7 +4,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { AppError, notFound } from '../../lib/errors.js';
 import { toJobDto } from '../jobs/job.mapper.js';
 import { applicantCounts } from '../jobs/job.queries.js';
-import { notify } from '../notifications/notification.service.js';
+import { addNotifications, pushNotifications } from '../notifications/notification.service.js';
 import { recordAudit } from './audit.service.js';
 
 /** All published and closed jobs (drafts are private to the company). Matches `AdminJobRow`. */
@@ -29,12 +29,16 @@ export async function listJobsForAdmin({ q, status }: { q?: string; status?: 'ac
 
 /** Takes a job down (fake, unsafe...): closes it, tells the company and records the action. */
 export async function removeJob(adminId: string, jobId: string, reason: string) {
-  await prisma.$transaction((tx) => removeJobWith(tx, adminId, jobId, reason));
+  const notices = await prisma.$transaction((tx) => removeJobWith(tx, adminId, jobId, reason));
+  pushNotifications(notices);
   // Chats about this job become read-only.
   chatsChanged({ jobId });
 }
 
-/** Same as removeJob, inside a transaction the caller already started. */
+/**
+ * Same as removeJob, inside a transaction the caller already started.
+ * Returns the notifications to push once the transaction has committed.
+ */
 export async function removeJobWith(tx: Db, adminId: string, jobId: string, reason: string) {
   const job = await tx.job.findFirst({ where: { id: jobId, status: { not: 'draft' } } });
   if (!job) throw notFound('Job not found.');
@@ -46,18 +50,17 @@ export async function removeJobWith(tx: Db, adminId: string, jobId: string, reas
   });
 
   const members = await tx.user.findMany({ where: { companyId: job.companyId }, select: { id: true } });
-  await notify(
-    members.map((member) => ({
-      userId: member.id,
-      title: 'Job removed by IndustriaLink',
-      body: `"${job.title}" was removed. Reason: ${reason}`,
-      link: '/employer/jobs?tab=closed',
-    })),
-    tx,
-  );
+  const notices = members.map((member) => ({
+    userId: member.id,
+    title: 'Job removed by IndustriaLink',
+    body: `"${job.title}" was removed. Reason: ${reason}`,
+    link: '/employer/jobs?tab=closed',
+  }));
+  await addNotifications(notices, tx);
 
   await recordAudit(
     { actorId: adminId, action: 'job.remove', targetType: 'job', targetId: job.id, details: { reason } },
     tx,
   );
+  return notices;
 }

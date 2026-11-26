@@ -4,7 +4,7 @@ import { HIRING_TYPE_LABEL, SECTOR_LABEL } from '../../lib/catalog.js';
 import { AppError, notFound } from '../../lib/errors.js';
 import { toNationalPhone } from '../../lib/phone.js';
 import { fileUrl } from '../files/storage.js';
-import { notify } from '../notifications/notification.service.js';
+import { addNotifications, pushNotifications } from '../notifications/notification.service.js';
 import { recordAudit } from './audit.service.js';
 import type { DecideVerificationInput } from './admin.schemas.js';
 
@@ -67,7 +67,7 @@ export async function decideCompany(adminId: string, companyId: string, input: D
   const approved = input.decision === 'approve';
   const reason = approved ? null : input.reason!;
 
-  await prisma.$transaction(async (tx) => {
+  const notices = await prisma.$transaction(async (tx) => {
     // Only a company that is still pending can be decided (two admins may click at once).
     const { count } = await tx.company.updateMany({
       where: { id: companyId, verification: 'pending' },
@@ -86,15 +86,13 @@ export async function decideCompany(adminId: string, companyId: string, input: D
       await tx.user.updateMany({ where: { companyId, status: 'pending' }, data: { status: 'active' } });
     }
 
-    await notify(
-      members.map((member) => ({
-        userId: member.id,
-        title: approved ? 'Company verified ✓' : 'Verification not approved',
-        body: approved ? 'You can now publish jobs.' : `Reason: ${reason}`,
-        link: '/employer/company',
-      })),
-      tx,
-    );
+    const notices = members.map((member) => ({
+      userId: member.id,
+      title: approved ? 'Company verified ✓' : 'Verification not approved',
+      body: approved ? 'You can now publish jobs.' : `Reason: ${reason}`,
+      link: '/employer/company',
+    }));
+    await addNotifications(notices, tx);
 
     await recordAudit(
       {
@@ -106,5 +104,7 @@ export async function decideCompany(adminId: string, companyId: string, input: D
       },
       tx,
     );
+    return notices;
   });
+  pushNotifications(notices);
 }

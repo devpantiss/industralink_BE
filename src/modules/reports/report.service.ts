@@ -5,7 +5,7 @@ import { AppError, conflict, notFound } from '../../lib/errors.js';
 import { recordAudit } from '../admin/audit.service.js';
 import { removeJobWith } from '../admin/admin-jobs.service.js';
 import { viewableJobWhere } from '../jobs/job.queries.js';
-import { notify } from '../notifications/notification.service.js';
+import { type NewNotification, notify, pushNotifications } from '../notifications/notification.service.js';
 import type { ReportJobInput, ResolveReportInput } from './report.schemas.js';
 
 /** Used when the admin removes a reported job without writing a reason. */
@@ -83,7 +83,7 @@ export async function listReports(status: ReportStatus | 'all') {
  * report for it; "dismiss" closes only this report.
  */
 export async function resolveReport(adminId: string, reportId: string, input: ResolveReportInput) {
-  const removedJobId = await prisma.$transaction(async (tx) => {
+  const removed = await prisma.$transaction(async (tx) => {
     const report = await tx.jobReport.findUnique({
       where: { id: reportId },
       include: { job: { select: { removedByAdmin: true } } },
@@ -95,14 +95,14 @@ export async function resolveReport(adminId: string, reportId: string, input: Re
 
     if (input.action === 'remove_job') {
       // Another report may already have taken the job down.
-      if (!report.job.removedByAdmin) {
-        await removeJobWith(tx, adminId, report.jobId, input.note ?? DEFAULT_REMOVE_REASON);
-      }
+      const notices: NewNotification[] = report.job.removedByAdmin
+        ? []
+        : await removeJobWith(tx, adminId, report.jobId, input.note ?? DEFAULT_REMOVE_REASON);
       await tx.jobReport.updateMany({
         where: { jobId: report.jobId, status: 'open' },
         data: { status: 'job_removed', ...resolved },
       });
-      return report.jobId;
+      return { jobId: report.jobId, notices };
     }
 
     await tx.jobReport.update({ where: { id: report.id }, data: { status: 'dismissed', ...resolved } });
@@ -118,6 +118,9 @@ export async function resolveReport(adminId: string, reportId: string, input: Re
     );
     return null;
   });
-  // Chats about a removed job become read-only.
-  if (removedJobId) chatsChanged({ jobId: removedJobId });
+  if (removed) {
+    pushNotifications(removed.notices);
+    // Chats about a removed job become read-only.
+    chatsChanged({ jobId: removed.jobId });
+  }
 }

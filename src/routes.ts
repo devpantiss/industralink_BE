@@ -28,6 +28,7 @@ import {
 import { adminHomeRouter, employerHomeRouter, workerHomeRouter } from './modules/home/home.routes.js';
 import { messagesRouter } from './modules/messages/message.routes.js';
 import { notificationsRouter } from './modules/notifications/notification.routes.js';
+import { pushTokenRouter } from './modules/push/push-token.routes.js';
 import { adminReportsRouter, reportJobRouter } from './modules/reports/report.routes.js';
 import { adminSupportRouter, supportRouter } from './modules/support/support.routes.js';
 import { workerProfileRouter } from './modules/workers/worker.routes.js';
@@ -52,6 +53,7 @@ apiRouter.use('/support', supportRouter);
 const me = Router();
 me.use(requireAuth);
 me.use('/', settingsRouter);
+me.use('/push-token', pushTokenRouter);
 apiRouter.use('/me', me);
 apiRouter.use('/notifications', requireAuth, notificationsRouter);
 

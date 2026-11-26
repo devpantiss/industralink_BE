@@ -12,6 +12,7 @@ import {
 } from './chat-access.js';
 import { chatRead, messageSent } from './chat-events.js';
 import { otherSide, previewOf, sideFields, toMessageDto, toThreadDto } from './message.mapper.js';
+import { pushNewMessage } from './message.push.js';
 import type { SendMessageInput, ThreadQuery } from './message.schemas.js';
 
 /** Messages per page when a chat opens or scrolls up. */
@@ -153,7 +154,10 @@ export async function sendMessage(user: User, applicationId: string, input: Send
   if (closed) throw closed;
 
   const sent = (await findResend(user, applicationId, input)) ?? (await saveMessage(user, chat, side, input));
-  if (sent.created) messageSent(sent.message, sent.chat);
+  if (sent.created) {
+    messageSent(sent.message, sent.chat);
+    pushNewMessage(sent.message, sent.chat);
+  }
   return { message: toMessageDto(sent.message, sent.chat, side), created: sent.created };
 }
 

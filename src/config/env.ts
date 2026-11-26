@@ -1,5 +1,27 @@
 import { z } from 'zod';
 
+/** The Firebase service account key: the downloaded JSON file, as base64 (or the JSON itself). */
+const firebaseKey = z
+  .string()
+  .trim()
+  .default('')
+  .transform((value, ctx) => {
+    if (!value) return null;
+    try {
+      const json = value.startsWith('{') ? value : Buffer.from(value, 'base64').toString('utf8');
+      const key = z
+        .object({ project_id: z.string().min(1), client_email: z.email(), private_key: z.string().min(1) })
+        .parse(JSON.parse(json));
+      return { projectId: key.project_id, clientEmail: key.client_email, privateKey: key.private_key };
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'must be the Firebase service account JSON file as base64 (see my-notes/PUSH_PLAN.md)',
+      });
+      return z.NEVER;
+    }
+  });
+
 /**
  * All settings come from environment variables (.env in development).
  * They are checked once at start-up: if something is missing or wrong,
@@ -30,6 +52,8 @@ const envSchema = z.object({
         .map((origin) => origin.trim())
         .filter(Boolean),
     ),
+  /** Push notifications through Firebase. Without it, push is off and everything else works. */
+  FIREBASE_SERVICE_ACCOUNT: firebaseKey,
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -118,14 +118,16 @@ Shapes are in the apps' `src/types/index.ts`.
 
 ### Any logged-in user
 
-| Method      | Path                       | Body / query            | Returns                           | Notes                                                                                                                               |
-| ----------- | -------------------------- | ----------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| POST        | `/auth/password/change`    | `{ current, next }`     | `{ ok }`                          | Employer/admin only. 422 `WRONG_PASSWORD`                                                                                           |
-| GET / PATCH | `/me/settings`             | `Partial<UserSettings>` | `UserSettings`                    | Language, alerts, "let companies find me"                                                                                           |
-| POST        | `/me/delete`               | `{ confirm: "DELETE" }` | `{ ok }`                          | Worker: personal data erased, open applications withdrawn. Employer: company hidden, jobs closed. (DPDP Act)                        |
-| GET         | `/messages`                |                         | `MessageThread[]`                 | One thread per application, from shortlisted onwards                                                                                |
-| GET         | `/messages/:applicationId` |                         | `{ thread, messages: Message[] }` | Also marks the thread as read                                                                                                       |
-| POST        | `/messages/:applicationId` | `{ text }` (max 1000)   | `Message`                         | 403 `NOT_ALLOWED` before shortlisting or after closing, 403 `DISABLED` when admin turned messaging off. Admins can't read messages. |
+| Method      | Path                       | Body / query                 | Returns                           | Notes                                                                                                                                                                                                                 |
+| ----------- | -------------------------- | ---------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST        | `/auth/password/change`    | `{ current, next }`          | `{ ok }`                          | Employer/admin only. 422 `WRONG_PASSWORD`                                                                                                                                                                             |
+| GET / PATCH | `/me/settings`             | `Partial<UserSettings>`      | `UserSettings`                    | Language, alerts, "let companies find me"                                                                                                                                                                             |
+| PUT         | `/me/push-token`           | `{ token, platform, kind? }` | 204                               | This login's phone for push notifications. `platform`: `android` \| `ios` \| `web`; `kind`: `token` (default, FCM registration token) or `fid` (Firebase installation id). One per login: a new one replaces the old. |
+| DELETE      | `/me/push-token`           |                              | 204                               | Stop push notifications for this login (logout does this too)                                                                                                                                                         |
+| POST        | `/me/delete`               | `{ confirm: "DELETE" }`      | `{ ok }`                          | Worker: personal data erased, open applications withdrawn. Employer: company hidden, jobs closed. (DPDP Act)                                                                                                          |
+| GET         | `/messages`                |                              | `MessageThread[]`                 | One thread per application, from shortlisted onwards                                                                                                                                                                  |
+| GET         | `/messages/:applicationId` |                              | `{ thread, messages: Message[] }` | Also marks the thread as read                                                                                                                                                                                         |
+| POST        | `/messages/:applicationId` | `{ text }` (max 1000)        | `Message`                         | 403 `NOT_ALLOWED` before shortlisting or after closing, 403 `DISABLED` when admin turned messaging off. Admins can't read messages.                                                                                   |
 
 ### Worker
 
@@ -212,6 +214,16 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - `POST /me/delete` with `{ confirm: "DELETE" }`: the account shows as "Deleted user", phone/email/profile/documents/photo/saved jobs are erased, open applications are withdrawn, every login ends. Employer: open jobs close; the company is hidden when no other HR user is left. Admins get 403 `ADMIN`. A deleted account gets 401 `ACCOUNT_DELETED`.
 - `GET /admin/audit`: newest 100 entries, in words (e.g. `action: "Blocked user"`, `target: "Raju – Asked workers for money"`).
 - `PATCH /admin/settings`: only real changes are logged. `autoApproveCompanies` applies to new employer sign-ups; `messagingEnabled` and `talentSearchEnabled` are used by chat and Find workers.
+
+## Backend notes (push notifications – Nov 2026)
+
+- After login (and whenever Firebase gives a new id) the phone app calls `PUT /me/push-token`. If the same phone was logged in to another account before, that account stops getting pushes on it.
+- Logout, blocking, deleting the account or an expired login stops the pushes. Phones where the app was removed are forgotten automatically.
+- What is pushed:
+  - every bell notification, with the same `title`, `body` and `link`, Android channel `updates`;
+  - every new chat message, to the other side (the worker, or all HR users of the company): title = company name or worker name, body = the message (first 120 characters), `link` = `/worker/messages?c=<id>` or `/employer/messages?c=<id>`, channel `messages`, `group` = `chat-<applicationId>` (messages of one chat replace each other).
+- Push `data` (strings): `channel`, `link` (when set), `group` (messages). The app opens `link` on tap.
+- Pushes are sent even when the app is open: the app decides what to show (a banner, or nothing for the chat on screen).
 
 ## Backend notes (chat – Nov 2026)
 

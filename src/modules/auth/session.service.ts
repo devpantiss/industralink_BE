@@ -37,20 +37,20 @@ export async function startSession(user: User, meta: SessionMeta): Promise<AuthR
   return { token, user: toUserDto(updatedUser) };
 }
 
-/** Logs out one device. */
+/** Logs out one device. Its live connection and push notifications stop. */
 export async function revokeSession(sessionId: string): Promise<void> {
-  await prisma.session.updateMany({
-    where: { id: sessionId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await prisma.$transaction([
+    prisma.session.updateMany({ where: { id: sessionId, revokedAt: null }, data: { revokedAt: new Date() } }),
+    prisma.pushToken.deleteMany({ where: { sessionId } }),
+  ]);
   closeSession(sessionId);
 }
 
 /** Logs out every device of a user (used when blocking a user or resetting a password). */
 export async function revokeAllSessions(userId: string): Promise<void> {
-  await prisma.session.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await prisma.$transaction([
+    prisma.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+    prisma.pushToken.deleteMany({ where: { userId } }),
+  ]);
   closeUser(userId);
 }

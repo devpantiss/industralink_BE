@@ -31,6 +31,7 @@ Check: `curl localhost:4000/health` → `{"status":"ok","database":"up"}`
 | `db:clear`                      | Clear all data and uploads, no demo data (local only)             |
 | `db:reset`                      | Drop everything, re-run migrations and seed                       |
 | `db:studio`                     | Browse the database in the browser                                |
+| `push:test -- --phone <number>` | Send a test push to that person's phones (needs the Firebase key) |
 
 ## Folder structure
 
@@ -66,7 +67,7 @@ Full details (bodies, answers, errors): `docs/API_CONTRACT.md`. All paths below 
 | Who       | Routes                                                                                                                                                                                                                                                                                                                                                                           |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Anyone    | `GET /health` (no `/api/v1`), `GET /public/jobs`, `GET /public/jobs/:id`, `GET /files/...` (signed links), `POST /support` (help form; login optional)                                                                                                                                                                                                                           |
-| Logged in | `GET /auth/me`, `POST /auth/logout`, `POST /auth/onboarding/complete`, `GET/PATCH /me/settings`, `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `POST /me/delete`                                                                                                                                                                         |
+| Logged in | `GET /auth/me`, `POST /auth/logout`, `POST /auth/onboarding/complete`, `GET/PATCH /me/settings`, `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `PUT/DELETE /me/push-token`, `POST /me/delete`                                                                                                                                            |
 | Worker    | `GET /worker/summary`, `GET/PATCH /worker/profile`, `GET/POST /worker/documents`, `DELETE /worker/documents/:id`, `POST /worker/documents/:id/default`                                                                                                                                                                                                                           |
 | Worker    | `GET /jobs`, `GET /jobs/:id`, `POST/DELETE /jobs/:id/save`, `GET /worker/saved`, `GET /companies`, `GET /companies/:id`, `POST /jobs/:id/report`                                                                                                                                                                                                                                 |
 | Worker    | `POST /jobs/:id/apply`, `GET /worker/applications`, `GET /worker/applications/:id`, `POST /worker/applications/:id/withdraw`, `POST /worker/applications/:id/interview-response`, `POST /worker/applications/:id/offer-response`                                                                                                                                                 |
@@ -88,7 +89,7 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 211 tests, uses the separate test database
+npm test           # about 223 tests, uses the separate test database
 ```
 
 **2. By hand with the Postman app**
@@ -96,13 +97,22 @@ npm test           # about 211 tests, uses the separate test database
 1. `npm run db:seed` for fresh demo data, then `npm run dev`.
 2. In the Postman app: **Import** → pick the file `postman/IndustriaLink.postman_collection.json`.
 3. Run folder **0. Start here** first (it logs in and saves the tokens), then any other request,
-   or right-click the collection → **Run collection** to run all 110 requests.
+   or right-click the collection → **Run collection** to run all 112 requests.
 4. Bodies must be **raw → JSON** (a "Text" body gets `415 NOT_JSON`).
    For the 2 upload requests, choose a file once: `postman/sample-resume.pdf`.
 
 **3. Look inside the database:** `npm run db:studio` opens it in the browser.
 
 **4. Start again with clean demo data:** `npm run db:seed` (only works on a database on this computer).
+
+## Push notifications
+
+Every bell notification is also sent as a push to the person's phones, and every new chat message
+goes to the other side's phones (grouped per chat). The phone app registers itself with
+`PUT /me/push-token` after login; logout, blocking and deleting the account stop the pushes.
+
+Push is off until `FIREBASE_SERVICE_ACCOUNT` is set in `.env` (the Firebase service account JSON as
+base64). Everything else works without it. Code: `src/modules/push/`.
 
 ## Files
 
