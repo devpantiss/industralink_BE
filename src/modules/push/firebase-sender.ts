@@ -17,8 +17,13 @@ const GONE_ERRORS = new Set([
 function toFirebase({ title, body, link, channel, group }: PushMessage): BaseMessage {
   return {
     notification: { title, body },
-    // Read by the app when the notification is tapped. Values must be strings.
-    data: { channel, ...(link && { link }), ...(group && { group }) },
+    // Read by the app (values must be strings). On Android the app shows the notification
+    // itself, and `tag` makes a new one replace the old one.
+    data: {
+      channel,
+      ...(link && { link }),
+      ...(group && { group, tag: group }),
+    },
     android: {
       priority: 'high',
       notification: { channelId: channel, tag: group, sound: 'default' },

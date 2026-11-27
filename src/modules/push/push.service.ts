@@ -83,11 +83,13 @@ const running = new Set<Promise<void>>();
  * Sends a push to every phone the users are logged in on, in the background.
  * Never throws and never makes the request wait: a lost push only means the person
  * sees the news when they open the app (the bell and the chat are the truth).
+ * The message can also be built in the background, when that needs the database.
  */
-export function sendPush(to: PushTo, message: PushMessage): void {
+export function sendPush(to: PushTo, message: PushMessage | (() => Promise<PushMessage>)): void {
   if (!sender) return;
-  const work: Promise<void> = sendPushNow(to, message)
-    .then((result) => logger.debug({ ...result, channel: message.channel }, 'Push done'))
+  const work: Promise<void> = (typeof message === 'function' ? message() : Promise.resolve(message))
+    .then((push) => sendPushNow(to, push).then((result) => ({ ...result, channel: push.channel })))
+    .then((result) => logger.debug(result, 'Push done'))
     .catch((error: unknown) => logger.warn({ err: error }, 'Push failed'))
     .finally(() => running.delete(work));
   running.add(work);

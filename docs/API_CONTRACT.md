@@ -221,8 +221,8 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - Logout, blocking, deleting the account or an expired login stops the pushes. Phones where the app was removed are forgotten automatically.
 - What is pushed:
   - every bell notification, with the same `title`, `body` and `link`, Android channel `updates`;
-  - every new chat message, to the other side (the worker, or all HR users of the company): title = company name or worker name, body = the message (first 120 characters), `link` = `/worker/messages?c=<id>` or `/employer/messages?c=<id>`, channel `messages`, `group` = `chat-<applicationId>` (messages of one chat replace each other).
-- Push `data` (strings): `channel`, `link` (when set), `group` (messages). The app opens `link` on tap.
+  - every new chat message, to the other side (the worker, or all HR users of the company): one notification per chat, like WhatsApp: title = company name or worker name, with `(3 messages)` when several are unread; body = the unread messages, one per line (the last 5, each up to 120 characters); `link` = `/worker/messages?c=<id>` or `/employer/messages?c=<id>`, channel `messages`, `group` = `chat-<applicationId>`. Each new push of a chat replaces the previous one; reading the chat starts the count again.
+- Push `data` (strings): `channel`, `link` (when set), `group` and `tag` (messages; on Android the app replaces the notification with the same `tag`). The app opens `link` on tap.
 - Pushes are sent even when the app is open: the app decides what to show (a banner, or nothing for the chat on screen).
 
 ## Backend notes (chat – Nov 2026)

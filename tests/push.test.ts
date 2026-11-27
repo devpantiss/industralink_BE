@@ -216,6 +216,33 @@ describe('pushes for chat messages', () => {
     expect(await pushesTo(chat.hr.token)).toEqual([]);
   });
 
+  it('lists the unread messages of the chat in one notification, like WhatsApp', async () => {
+    const chat = await chatWithPhones();
+    const send = (text: string) =>
+      request(app).post(`${API}/messages/${chat.id}`).set(chat.hr.auth).send({ text }).expect(201);
+    await send('Hey Ravi');
+    await pushIdle();
+    sent.length = 0;
+
+    await send('How is it going?');
+
+    expect(await pushesTo(chat.worker.token)).toEqual([
+      expect.objectContaining({
+        title: `${chat.company.name} (2 messages)`,
+        body: 'Hey Ravi\nHow is it going?',
+        group: `chat-${chat.id}`,
+      }),
+    ]);
+
+    // Reading the chat starts over.
+    await request(app).get(`${API}/messages/${chat.id}`).set(chat.worker.auth).expect(200);
+    sent.length = 0;
+    await send('See you');
+    expect(await pushesTo(chat.worker.token)).toEqual([
+      expect.objectContaining({ title: chat.company.name, body: 'See you' }),
+    ]);
+  });
+
   it('worker → every HR user of the company, titled with the worker name', async () => {
     const chat = await chatWithPhones();
     sent.length = 0;
