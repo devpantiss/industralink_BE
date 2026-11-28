@@ -56,7 +56,10 @@ const roleField = z.enum(['worker', 'employer'], 'Choose “I need a job” or �
 const phoneField = z.string('Enter your mobile number.').transform((value, ctx) => {
   const phone = normalizeIndianPhone(value);
   if (!phone) {
-    ctx.addIssue({ code: 'custom', message: 'Enter a 10-digit mobile number that starts with 6, 7, 8 or 9.' });
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Enter a 10-digit mobile number that starts with 6, 7, 8 or 9.',
+    });
     return z.NEVER;
   }
   return phone;
