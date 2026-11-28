@@ -6,7 +6,9 @@
  * workers, and applications at every hiring stage with their timeline, notifications
  * and chats. All companies, people and phone numbers are made up.
  *
- * Demo logins: worker 9876543210 (Ramesh), HR hr@konark.demo, admin admin@industrialink.demo.
+ * Demo logins (every account's password is DEMO_PASSWORD below):
+ *   worker ramesh.kumar@worker.demo, HR hr@konark.demo, admin admin@industrialink.demo.
+ * Workers' emails are their name: firstname.lastname@worker.demo.
  */
 import 'dotenv/config';
 import { prisma } from '../src/db/prisma.js';
@@ -17,8 +19,15 @@ import type {
   TimelineEventType,
   User,
 } from '../src/generated/prisma/client.js';
+import { hashPassword } from '../src/lib/password.js';
 import { previewOf } from '../src/modules/messages/message.mapper.js';
 import { assertLocalDatabase, wipe } from './local-data.js';
+
+/** The same made-up password for every demo account (local databases only). */
+const DEMO_PASSWORD = 'demo1234';
+let passwordHash = '';
+
+const workerEmail = (name: string) => `${name.toLowerCase().replace(/\s+/g, '.')}@worker.demo`;
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY);
@@ -74,6 +83,7 @@ async function createCompany(spec: CompanySpec) {
           role: 'employer',
           name: spec.hr.name,
           email: spec.hr.email,
+          passwordHash,
           onboarded: true,
           createdAt: daysAgo(spec.joinedDaysAgo),
           settings: { create: {} },
@@ -116,6 +126,8 @@ async function createWorker(spec: WorkerSpec) {
       role: 'worker',
       name: spec.name,
       phone: spec.phone,
+      email: workerEmail(spec.name),
+      passwordHash,
       status: spec.blocked ? 'blocked' : 'active',
       onboarded: spec.onboarded ?? true,
       createdAt: daysAgo(spec.joinedDaysAgo),
@@ -356,12 +368,14 @@ async function main() {
   await wipe();
 
   await prisma.platformSettings.create({ data: { id: 1 } });
+  passwordHash = await hashPassword(DEMO_PASSWORD);
 
   const admin = await prisma.user.create({
     data: {
       role: 'admin',
       name: 'Neha Kapoor',
       email: 'admin@industrialink.demo',
+      passwordHash,
       onboarded: true,
       createdAt: daysAgo(200),
       settings: { create: {} },

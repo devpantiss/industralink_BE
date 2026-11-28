@@ -27,15 +27,15 @@ Both apps (web dashboard and mobile) follow this file. A change goes here first,
 
 ## Auth
 
-| Method | Path                        | Body                                      | Returns               | Notable errors                                                                                           |
-| ------ | --------------------------- | ----------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/otp/request`         | `{ phone }`                               | `{ sent, isNewUser }` | 400 `INVALID_PHONE`                                                                                      |
-| POST   | `/auth/otp/verify`          | `{ phone, code, name? }` (name = sign up) | `AuthResponse`        | 400 `WRONG_OTP`, 404 `NOT_FOUND` (no account), 409 `EXISTS` (sign-up with a known number), 403 `BLOCKED` |
-| POST   | `/auth/login`               | `{ email, password }`                     | `AuthResponse`        | 401 `INVALID_CREDENTIALS`, 403 `BLOCKED`                                                                 |
-| POST   | `/auth/signup/employer`     | `{ name, email, password, companyName }`  | `AuthResponse`        | 409 `EXISTS`                                                                                             |
-| GET    | `/auth/me`                  |                                           | `User`                | 401                                                                                                      |
-| POST   | `/auth/logout`              |                                           | `{ ok }`              |                                                                                                          |
-| POST   | `/auth/onboarding/complete` |                                           | `User`                |                                                                                                          |
+| Method | Path                        | Body                                     | Returns              | Notable errors                                                                                                                   |
+| ------ | --------------------------- | ---------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/signup/worker`       | `{ name, phone, email, password }`       | `AuthResponse` (201) | 409 `EXISTS` / `EXISTS_GOOGLE` / `PHONE_TAKEN`, 422 (password 8–128 characters)                                                  |
+| POST   | `/auth/login`               | `{ email, password, role? }`             | `AuthResponse`       | 401 `INVALID_CREDENTIALS` / `USE_GOOGLE`, 409 `WRONG_ROLE`, 403 `BLOCKED`, 429                                                   |
+| POST   | `/auth/signup/employer`     | `{ name, email, password, companyName }` | `AuthResponse` (201) | 409 `EXISTS` / `EXISTS_GOOGLE`                                                                                                   |
+| POST   | `/auth/google`              | `{ idToken, role, companyName? }`        | `AuthResponse`       | 201 = new account. 422 `COMPANY_NAME_NEEDED`, 409 `WRONG_ROLE` / `GOOGLE_ACCOUNT_MISMATCH`, 401, 403 `BLOCKED`, 503 `GOOGLE_OFF` |
+| GET    | `/auth/me`                  |                                          | `User`               | 401                                                                                                                              |
+| POST   | `/auth/logout`              |                                          | `{ ok }`             |                                                                                                                                  |
+| POST   | `/auth/onboarding/complete` |                                          | `User`               |                                                                                                                                  |
 
 ## Notifications (all roles)
 
@@ -120,7 +120,8 @@ Shapes are in the apps' `src/types/index.ts`.
 
 | Method      | Path                       | Body / query                 | Returns                           | Notes                                                                                                                                                                                                                 |
 | ----------- | -------------------------- | ---------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST        | `/auth/password/change`    | `{ current, next }`          | `{ ok }`                          | Employer/admin only. 422 `WRONG_PASSWORD`                                                                                                                                                                             |
+| POST        | `/auth/password/change`    | `{ current?, next }`         | `{ ok }`                          | 422 `WRONG_PASSWORD`. `current` not needed when the account has no password yet (made with Google). Other devices are logged out.                                                                                     |
+| PUT         | `/me/phone`                | `{ phone }`                  | `User`                            | Workers only (403 others). 10-digit Indian mobile, not checked by SMS. 409 `PHONE_TAKEN`.                                                                                                                             |
 | GET / PATCH | `/me/settings`             | `Partial<UserSettings>`      | `UserSettings`                    | Language, alerts, "let companies find me"                                                                                                                                                                             |
 | PUT         | `/me/push-token`           | `{ token, platform, kind? }` | 204                               | This login's phone for push notifications. `platform`: `android` \| `ios` \| `web`; `kind`: `token` (default, FCM registration token) or `fid` (Firebase installation id). One per login: a new one replaces the old. |
 | DELETE      | `/me/push-token`           |                              | 204                               | Stop push notifications for this login (logout does this too)                                                                                                                                                         |
@@ -196,14 +197,12 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 
 ## Also available (not in the tables above)
 
-| Method | Path                        | Body / query                               | Returns                   | Notes                                                                         |
-| ------ | --------------------------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------- |
-| GET    | `/public/jobs`              | query: `JobSearchParams`                   | `Paginated<JobForWorker>` | Job search without login (landing site). Same filters as `/jobs`, no `saved`. |
-| DELETE | `/jobs/:id/save`            |                                            | `{ saved: false }`        | Unsave a job.                                                                 |
-| GET    | `/auth/dev-users`           |                                            | demo accounts             | **Development only** (`DEV_LOGIN=true`). Never on the live server.            |
-| POST   | `/auth/dev-login`           | `{ phone }` or `{ email }` or `{ userId }` | `AuthResponse`            | **Development only.** The apps' "Quick demo login" uses it.                   |
-| POST   | `/auth/dev-signup/worker`   | `{ name, phone }`                          | `AuthResponse`            | **Development only.** Test sign-up until the real login exists.               |
-| POST   | `/auth/dev-signup/employer` | `{ name, email, companyName }`             | `AuthResponse`            | **Development only.**                                                         |
+| Method | Path              | Body / query                               | Returns                   | Notes                                                                         |
+| ------ | ----------------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------- |
+| GET    | `/public/jobs`    | query: `JobSearchParams`                   | `Paginated<JobForWorker>` | Job search without login (landing site). Same filters as `/jobs`, no `saved`. |
+| DELETE | `/jobs/:id/save`  |                                            | `{ saved: false }`        | Unsave a job.                                                                 |
+| GET    | `/auth/dev-users` |                                            | demo accounts             | **Development only** (`DEV_LOGIN=true`). Never on the live server.            |
+| POST   | `/auth/dev-login` | `{ phone }` or `{ email }` or `{ userId }` | `AuthResponse`            | **Development only.** The apps' "Quick demo login" uses it.                   |
 
 ## Backend notes (reports, help, delete account, admin tools – Nov 2026)
 
@@ -214,6 +213,30 @@ Backend still to do: close jobs automatically at `deadline` (search already hide
 - `POST /me/delete` with `{ confirm: "DELETE" }`: the account shows as "Deleted user", phone/email/profile/documents/photo/saved jobs are erased, open applications are withdrawn, every login ends. Employer: open jobs close; the company is hidden when no other HR user is left. Admins get 403 `ADMIN`. A deleted account gets 401 `ACCOUNT_DELETED`.
 - `GET /admin/audit`: newest 100 entries, in words (e.g. `action: "Blocked user"`, `target: "Raju – Asked workers for money"`).
 - `PATCH /admin/settings`: only real changes are logged. `autoApproveCompanies` applies to new employer sign-ups; `messagingEnabled` and `talentSearchEnabled` are used by chat and Find workers.
+
+## Backend notes (login – Nov 2026)
+
+- Everyone logs in with **email + password** or **Google** (workers and HR). There is no OTP: the mobile number is only for companies to call.
+- `role` on login is the tab the person chose (`worker` or `employer`). With the right password but the wrong tab → 409 `WRONG_ROLE` (the message names the right tab). Admins use `employer` or send no role. A wrong password and an unknown email get the same 401 `INVALID_CREDENTIALS`.
+- An account made with Google has no password: login answers 401 `USE_GOOGLE`, sign-up with that email 409 `EXISTS_GOOGLE`. In Settings it can set a password (`/auth/password/change` without `current`) and then use both.
+- `User` has `hasPassword` and `hasGoogle` (Settings shows "Change password" or "Set a password").
+- Workers give their mobile number when signing up with email. Signing up with Google gives none, so the first welcome step asks for it (`PUT /me/phone`). Until then `POST /auth/onboarding/complete` and `POST /jobs/:id/apply` answer 422 `PHONE_NEEDED`. One number per account (409 `PHONE_TAKEN`); it is not checked by SMS.
+- Limits: 50 login / sign-up / Google tries per 10 minutes per IP; 10 wrong passwords per 15 minutes per email (429 `TOO_MANY_REQUESTS`).
+- Passwords are stored as scrypt hashes. Forgot password needs the email service (not built yet).
+- Demo data: every account's password is `demo1234`; workers are `firstname.lastname@worker.demo` (e.g. `ramesh.kumar@worker.demo`).
+
+## Backend notes (Google sign-in – Nov 2026)
+
+- One endpoint for "Sign in with Google" and "Sign up with Google", for workers and HR (not admin). Free: the token is checked on our server with Google's public keys.
+- `idToken` is the Google ID token: from the Android one-tap sheet (Credential Manager), or `credential` from Google's web button / one-tap prompt. `role` is the tab the person chose: `worker` or `employer`.
+- The token must be made for one of our client IDs (`GOOGLE_CLIENT_IDS`), not expired, and the email confirmed by Google. Otherwise 401 `GOOGLE_TOKEN_INVALID` or `GOOGLE_EMAIL_NOT_VERIFIED`. Google unreachable → 503 `GOOGLE_UNAVAILABLE`. Not set up → 503 `GOOGLE_OFF`.
+- Known person (by Google id, then by email) → 200 `AuthResponse`. An account made another way with the same email gets Google linked to it. Changing the Gmail address later still logs in (Google's id stays the same).
+- New person → 201 `AuthResponse` with `user.onboarded: false`, so the apps show the welcome steps:
+  - worker: created from Google's name and email. No phone yet (asked in the first welcome step);
+  - HR: also needs `companyName`. Without it → 422 `COMPANY_NAME_NEEDED`: ask for the company name and send the same request again with it. The company waits for approval as usual.
+- Refused: account of the other role → 409 `WRONG_ROLE` (the message says which tab to use); admin → 403 `GOOGLE_NOT_FOR_ADMIN`; the email is linked to a different Google account → 409 `GOOGLE_ACCOUNT_MISMATCH`; blocked → 403 `BLOCKED`.
+- Two taps at once make one account. "Delete my account" removes the Google link, so the same Google account can sign up fresh.
+- 30 tries per 10 minutes per IP (429 `TOO_MANY_REQUESTS`).
 
 ## Backend notes (push notifications – Nov 2026)
 

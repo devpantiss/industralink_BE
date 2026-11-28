@@ -22,6 +22,24 @@ const firebaseKey = z
     }
   });
 
+/** Google sign-in: our OAuth client IDs (web, Android, iPhone), comma-separated. Not secret. */
+const googleClientIds = z
+  .string()
+  .default('')
+  .transform((value) =>
+    value
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean),
+  )
+  .pipe(
+    z.array(
+      z
+        .string()
+        .regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'each id must end with .apps.googleusercontent.com'),
+    ),
+  );
+
 /**
  * All settings come from environment variables (.env in development).
  * They are checked once at start-up: if something is missing or wrong,
@@ -54,6 +72,8 @@ const envSchema = z.object({
     ),
   /** Push notifications through Firebase. Without it, push is off and everything else works. */
   FIREBASE_SERVICE_ACCOUNT: firebaseKey,
+  /** Google sign-in. Without it, "Sign in with Google" answers "not available" and everything else works. */
+  GOOGLE_CLIENT_IDS: googleClientIds,
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -1,12 +1,7 @@
 import { prisma } from '../../db/prisma.js';
-import { notFound } from '../../lib/errors.js';
+import type { User } from '../../generated/prisma/client.js';
+import { invalid, notFound } from '../../lib/errors.js';
 import { toUserDto } from '../users/user.mapper.js';
-import {
-  createEmployerAccount,
-  createWorkerAccount,
-  type NewEmployer,
-  type NewWorker,
-} from '../users/user.service.js';
 import type { DevLoginInput } from './auth.schemas.js';
 import { startSession, type SessionMeta } from './session.service.js';
 
@@ -35,18 +30,11 @@ export async function listDevUsers() {
   });
 }
 
-/** The worker or employer finished the welcome steps. */
-export async function completeOnboarding(userId: string) {
-  const user = await prisma.user.update({ where: { id: userId }, data: { onboarded: true } });
-  return toUserDto(user);
-}
-
-/** DEVELOPMENT ONLY. Creates a worker account and logs in, without OTP. */
-export async function devSignupWorker(input: NewWorker, meta: SessionMeta) {
-  return startSession(await createWorkerAccount(input), meta);
-}
-
-/** DEVELOPMENT ONLY. Creates an employer + company and logs in, without email checks. */
-export async function devSignupEmployer(input: NewEmployer, meta: SessionMeta) {
-  return startSession(await createEmployerAccount(input), meta);
+/** The worker or employer finished the welcome steps. A worker must have added a mobile number. */
+export async function completeOnboarding(user: User) {
+  if (user.role === 'worker' && !user.phone) {
+    throw invalid('Add your mobile number first, so companies can call you.', 'PHONE_NEEDED');
+  }
+  const updated = await prisma.user.update({ where: { id: user.id }, data: { onboarded: true } });
+  return toUserDto(updated);
 }

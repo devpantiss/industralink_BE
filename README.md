@@ -66,8 +66,8 @@ Full details (bodies, answers, errors): `docs/API_CONTRACT.md`. All paths below 
 
 | Who       | Routes                                                                                                                                                                                                                                                                                                                                                                           |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Anyone    | `GET /health` (no `/api/v1`), `GET /public/jobs`, `GET /public/jobs/:id`, `GET /files/...` (signed links), `POST /support` (help form; login optional)                                                                                                                                                                                                                           |
-| Logged in | `GET /auth/me`, `POST /auth/logout`, `POST /auth/onboarding/complete`, `GET/PATCH /me/settings`, `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `PUT/DELETE /me/push-token`, `POST /me/delete`                                                                                                                                            |
+| Anyone    | `GET /health` (no `/api/v1`), `GET /public/jobs`, `GET /public/jobs/:id`, `GET /files/...` (signed links), `POST /support` (help form; login optional), `POST /auth/signup/worker`, `POST /auth/signup/employer`, `POST /auth/login`, `POST /auth/google`                                                                                                                        |
+| Logged in | `GET /auth/me`, `POST /auth/logout`, `POST /auth/onboarding/complete`, `POST /auth/password/change`, `GET/PATCH /me/settings`, `PUT /me/phone`, `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `PUT/DELETE /me/push-token`, `POST /me/delete`                                                                                             |
 | Worker    | `GET /worker/summary`, `GET/PATCH /worker/profile`, `GET/POST /worker/documents`, `DELETE /worker/documents/:id`, `POST /worker/documents/:id/default`                                                                                                                                                                                                                           |
 | Worker    | `GET /jobs`, `GET /jobs/:id`, `POST/DELETE /jobs/:id/save`, `GET /worker/saved`, `GET /companies`, `GET /companies/:id`, `POST /jobs/:id/report`                                                                                                                                                                                                                                 |
 | Worker    | `POST /jobs/:id/apply`, `GET /worker/applications`, `GET /worker/applications/:id`, `POST /worker/applications/:id/withdraw`, `POST /worker/applications/:id/interview-response`, `POST /worker/applications/:id/offer-response`                                                                                                                                                 |
@@ -77,9 +77,9 @@ Full details (bodies, answers, errors): `docs/API_CONTRACT.md`. All paths below 
 | Admin     | `GET /admin/summary`, `GET /admin/users`, `GET /admin/user-impact/:id`, `GET /admin/verifications`, `POST /admin/verifications/company/:id`, `GET /admin/jobs`, `POST /admin/jobs/:id/remove`, `PATCH /admin/users/:id`, `GET /admin/reports`, `POST /admin/reports/:id`, `GET /admin/support`, `POST /admin/support/:id/close`, `GET /admin/audit`, `GET/PATCH /admin/settings` |
 | Chat      | Workers and HR (not admins): `GET /messages`, `GET /messages/:applicationId` (`?before=` / `?after=`), `POST /messages/:applicationId`, `POST /messages/:applicationId/read`                                                                                                                                                                                                     |
 | Live      | `ws://<host>/ws`: live chat updates (new message, seen, typing). Log in with `{ type: "auth", token }` as the first message. See `docs/API_CONTRACT.md`.                                                                                                                                                                                                                         |
-| Dev only  | `GET /auth/dev-users`, `POST /auth/dev-login`, `POST /auth/dev-signup/worker`, `POST /auth/dev-signup/employer`                                                                                                                                                                                                                                                                  |
+| Dev only  | `GET /auth/dev-users`, `POST /auth/dev-login`                                                                                                                                                                                                                                                                                                                                    |
 
-Dev login is temporary (until the real login method is chosen) and is **not available in production**.
+Dev login (one-tap demo logins for building the apps) is **not available in production**.
 
 Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, worker phone `9876543210`.
 
@@ -89,7 +89,7 @@ Demo logins: `admin@industrialink.demo`, `hr@konark.demo`, `hr@westcoast.demo`, 
 
 ```bash
 npm run db:up      # database must be running
-npm test           # about 223 tests, uses the separate test database
+npm test           # about 257 tests, uses the separate test database
 ```
 
 **2. By hand with the Postman app**
@@ -97,7 +97,7 @@ npm test           # about 223 tests, uses the separate test database
 1. `npm run db:seed` for fresh demo data, then `npm run dev`.
 2. In the Postman app: **Import** → pick the file `postman/IndustriaLink.postman_collection.json`.
 3. Run folder **0. Start here** first (it logs in and saves the tokens), then any other request,
-   or right-click the collection → **Run collection** to run all 112 requests.
+   or right-click the collection → **Run collection** to run all 121 requests.
 4. Bodies must be **raw → JSON** (a "Text" body gets `415 NOT_JSON`).
    For the 2 upload requests, choose a file once: `postman/sample-resume.pdf`.
 
@@ -113,6 +113,16 @@ goes to the other side's phones (grouped per chat). The phone app registers itse
 
 Push is off until `FIREBASE_SERVICE_ACCOUNT` is set in `.env` (the Firebase service account JSON as
 base64). Everything else works without it. Code: `src/modules/push/`.
+
+## Google sign-in
+
+`POST /auth/google` signs workers and HR in, or creates their account, with the ID token the app
+gets from Google (Android one-tap sheet, or Google's web button). The token is checked on this
+server with Google's public keys (`google-auth-library`), so it is free.
+
+It is off until `GOOGLE_CLIENT_IDS` is set in `.env` (our OAuth client IDs, comma separated; not
+secret). Code: `src/modules/auth/google-auth.service.ts` and `google-verifier.ts`. All cases are in
+`docs/API_CONTRACT.md`.
 
 ## Files
 

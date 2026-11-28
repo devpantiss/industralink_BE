@@ -18,7 +18,7 @@ export interface AuthResponse {
 }
 
 /**
- * The last step of every login method (dev login now; OTP, password or Google later):
+ * The last step of every login method (email + password, Google, and dev login):
  * checks the account, opens a session and returns the token.
  */
 export async function startSession(user: User, meta: SessionMeta): Promise<AuthResponse> {
@@ -53,4 +53,19 @@ export async function revokeAllSessions(userId: string): Promise<void> {
     prisma.pushToken.deleteMany({ where: { userId } }),
   ]);
   closeUser(userId);
+}
+
+/** Logs out every other device of a user (after a password change). This one stays. */
+export async function revokeOtherSessions(userId: string, keepSessionId: string): Promise<void> {
+  const others = await prisma.session.findMany({
+    where: { userId, revokedAt: null, id: { not: keepSessionId } },
+    select: { id: true },
+  });
+  if (!others.length) return;
+  const ids = others.map((session) => session.id);
+  await prisma.$transaction([
+    prisma.session.updateMany({ where: { id: { in: ids } }, data: { revokedAt: new Date() } }),
+    prisma.pushToken.deleteMany({ where: { sessionId: { in: ids } } }),
+  ]);
+  ids.forEach(closeSession);
 }

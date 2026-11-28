@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from '../src/db/prisma.js';
+import { hashPassword } from '../src/lib/password.js';
 import { createAdminAccount } from '../src/modules/users/user.service.js';
 import { adminUser, app, authHeader, createEmployer, createWorker, uniqueWord } from './helpers.js';
 
@@ -14,53 +15,12 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-const randomPhone = () => `9${Math.floor(100_000_000 + Math.random() * 899_999_999)}`;
-
-describe('test sign-up (until the real login is chosen)', () => {
-  it('creates a worker with an empty profile and settings, and logs in', async () => {
-    const phone = randomPhone();
-    const res = await request(app).post('/api/v1/auth/dev-signup/worker').send({ name: 'Anil Munda', phone });
-    expect(res.status).toBe(201);
-    expect(res.body.user).toMatchObject({ role: 'worker', name: 'Anil Munda', phone, onboarded: false });
-
-    const auth = { Authorization: `Bearer ${res.body.token}` };
-    expect((await request(app).get('/api/v1/worker/profile').set(auth)).status).toBe(200);
-    expect((await request(app).get('/api/v1/me/settings').set(auth)).status).toBe(200);
-
-    const again = await request(app).post('/api/v1/auth/dev-signup/worker').send({ name: 'Someone', phone });
-    expect(again.status).toBe(409);
-  });
-
-  it('creates an employer with a company waiting for approval', async () => {
-    const email = `${uniqueWord()}@Example.com`;
-    const res = await request(app)
-      .post('/api/v1/auth/dev-signup/employer')
-      .send({ name: 'Pooja Sahu', email, companyName: 'Paradip Bulk Handling' });
-    expect(res.status).toBe(201);
-    expect(res.body.user).toMatchObject({ role: 'employer', email: email.toLowerCase() });
-
-    const company = await request(app)
-      .get('/api/v1/employer/company')
-      .set({ Authorization: `Bearer ${res.body.token}` });
-    expect(company.body).toMatchObject({ name: 'Paradip Bulk Handling', verification: 'pending' });
-
-    const again = await request(app)
-      .post('/api/v1/auth/dev-signup/employer')
-      .send({ name: 'X Y', email, companyName: 'Other' });
-    expect(again.status).toBe(409);
-  });
-
-  it('checks the sign-up details (422)', async () => {
-    const res = await request(app).post('/api/v1/auth/dev-signup/worker').send({ name: 'A', phone: '123' });
-    expect(res.status).toBe(422);
-  });
-});
-
 describe('admin creates admins only from the server', () => {
   it('createAdminAccount makes an admin who can use admin pages', async () => {
     const created = await createAdminAccount({
       name: 'Second Admin',
       email: `${uniqueWord()}@industrialink.demo`,
+      passwordHash: await hashPassword('a-strong-password'),
     });
     expect(created.role).toBe('admin');
     const res = await request(app)
@@ -71,8 +31,8 @@ describe('admin creates admins only from the server', () => {
 
   it('there is no API to sign up as admin', async () => {
     const res = await request(app)
-      .post('/api/v1/auth/dev-signup/admin')
-      .send({ name: 'Hacker', email: 'h@x.com' });
+      .post('/api/v1/auth/signup/admin')
+      .send({ name: 'Hacker', email: 'h@x.com', password: 'password123' });
     expect(res.status).toBe(404);
   });
 });

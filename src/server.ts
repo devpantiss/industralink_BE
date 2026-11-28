@@ -9,6 +9,7 @@ const server = createApp().listen(env.PORT, () => {
   logger.info(`API running on http://localhost:${env.PORT} (${env.NODE_ENV})`);
   if (!env.FIREBASE_SERVICE_ACCOUNT)
     logger.info('Push notifications are off (FIREBASE_SERVICE_ACCOUNT is not set).');
+  if (!env.GOOGLE_CLIENT_IDS.length) logger.info('Google sign-in is off (GOOGLE_CLIENT_IDS is not set).');
   if (env.DEV_LOGIN) logger.warn('Test login is ON (DEV_LOGIN=true). Never use this on a live server.');
 });
 

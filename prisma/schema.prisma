@@ -105,6 +105,9 @@ model User {
   name         String
   phone        String?       @unique /// +91XXXXXXXXXX
   email        String?       @unique /// always lowercase
+  /// Google's fixed id for this person ("sub"), set on the first Google sign-in.
+  /// Kept even if they change their Gmail address, so they can still log in.
+  googleId     String?       @unique
   passwordHash String?
   status       AccountStatus @default(active)
   onboarded    Boolean       @default(false)

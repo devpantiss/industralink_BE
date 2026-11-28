@@ -11,6 +11,39 @@ export const apiLimiter = rateLimit({
   message: { message: 'Too many requests. Please wait a minute and try again.', code: 'TOO_MANY_REQUESTS' },
 });
 
+/**
+ * Login, sign-up and Google sign-in: 50 tries per 10 minutes per IP. Generous, because
+ * many workers can share one mobile network address; enough to stop scripted attacks.
+ */
+export const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 50,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skip: () => env.isTest,
+  message: { message: 'Too many attempts. Please wait a few minutes.', code: 'TOO_MANY_REQUESTS' },
+});
+
+/**
+ * Password guessing on one account: 10 wrong logins per 15 minutes per email, from any
+ * network. Right passwords don't count. Also on in tests, so the limit itself is tested.
+ */
+export const loginAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) =>
+    String(req.body?.email ?? '')
+      .trim()
+      .toLowerCase() || 'no-email',
+  message: {
+    message: 'Too many wrong passwords for this account. Please wait 15 minutes and try again.',
+    code: 'TOO_MANY_REQUESTS',
+  },
+});
+
 /** The help form is open to everyone, so it gets a small limit against spam. */
 export const supportLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,

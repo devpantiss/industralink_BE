@@ -94,7 +94,14 @@ export async function deleteOwnAccount(user: User) {
     await tx.notification.deleteMany({ where: { userId: user.id } });
     await tx.user.update({
       where: { id: user.id },
-      data: { name: 'Deleted user', phone: null, email: null, passwordHash: null, deletedAt: new Date() },
+      data: {
+        name: 'Deleted user',
+        phone: null,
+        email: null,
+        googleId: null,
+        passwordHash: null,
+        deletedAt: new Date(),
+      },
     });
     await recordAudit({ actorId: user.id, action: 'user.delete', targetType: 'user', targetId: user.id }, tx);
     return toDelete;

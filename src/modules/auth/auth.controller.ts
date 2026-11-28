@@ -1,8 +1,17 @@
 import type { Request, Response } from 'express';
 import { currentSessionId, currentUser } from '../../middleware/auth.js';
 import { toUserDto } from '../users/user.mapper.js';
-import { devLoginSchema, devSignupEmployerSchema, devSignupWorkerSchema } from './auth.schemas.js';
+import {
+  changePasswordSchema,
+  devLoginSchema,
+  googleLoginSchema,
+  loginSchema,
+  signupEmployerSchema,
+  signupWorkerSchema,
+} from './auth.schemas.js';
 import * as authService from './auth.service.js';
+import { loginWithGoogle } from './google-auth.service.js';
+import * as passwordAuth from './password-auth.service.js';
 import { revokeSession, type SessionMeta } from './session.service.js';
 
 function sessionMeta(req: Request): SessionMeta {
@@ -19,7 +28,35 @@ export async function logout(req: Request, res: Response) {
 }
 
 export async function completeOnboarding(req: Request, res: Response) {
-  res.json(await authService.completeOnboarding(currentUser(req).id));
+  res.json(await authService.completeOnboarding(currentUser(req)));
+}
+
+export async function signupWorker(req: Request, res: Response) {
+  const input = signupWorkerSchema.parse(req.body ?? {});
+  res.status(201).json(await passwordAuth.signupWorker(input, sessionMeta(req)));
+}
+
+export async function signupEmployer(req: Request, res: Response) {
+  const input = signupEmployerSchema.parse(req.body ?? {});
+  res.status(201).json(await passwordAuth.signupEmployer(input, sessionMeta(req)));
+}
+
+export async function login(req: Request, res: Response) {
+  const input = loginSchema.parse(req.body ?? {});
+  res.json(await passwordAuth.loginWithPassword(input, sessionMeta(req)));
+}
+
+export async function changePassword(req: Request, res: Response) {
+  const input = changePasswordSchema.parse(req.body ?? {});
+  await passwordAuth.changePassword(currentUser(req), currentSessionId(req), input);
+  res.json({ ok: true });
+}
+
+/** 201 when a new account was made (the apps then show the welcome steps), else 200. */
+export async function googleLogin(req: Request, res: Response) {
+  const input = googleLoginSchema.parse(req.body ?? {});
+  const { created, ...auth } = await loginWithGoogle(input, sessionMeta(req));
+  res.status(created ? 201 : 200).json(auth);
 }
 
 export async function devLogin(req: Request, res: Response) {
@@ -29,14 +66,4 @@ export async function devLogin(req: Request, res: Response) {
 
 export async function devUsers(_req: Request, res: Response) {
   res.json(await authService.listDevUsers());
-}
-
-export async function devSignupWorker(req: Request, res: Response) {
-  const input = devSignupWorkerSchema.parse(req.body ?? {});
-  res.status(201).json(await authService.devSignupWorker(input, sessionMeta(req)));
-}
-
-export async function devSignupEmployer(req: Request, res: Response) {
-  const input = devSignupEmployerSchema.parse(req.body ?? {});
-  res.status(201).json(await authService.devSignupEmployer(input, sessionMeta(req)));
 }

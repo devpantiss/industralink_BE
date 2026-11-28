@@ -10,6 +10,10 @@ export interface UserDto {
   email?: string;
   status: User['status'];
   onboarded: boolean;
+  /** Settings shows "Change password" or "Set a password" (accounts made with Google). */
+  hasPassword: boolean;
+  /** Signed up or logged in with Google at least once. */
+  hasGoogle: boolean;
   companyId?: string;
   createdAt: string;
 }
@@ -24,6 +28,8 @@ export function toUserDto(user: User): UserDto {
     email: user.email ?? undefined,
     status: user.status,
     onboarded: user.onboarded,
+    hasPassword: !!user.passwordHash,
+    hasGoogle: !!user.googleId,
     companyId: user.companyId ?? undefined,
     createdAt: user.createdAt.toISOString(),
   };

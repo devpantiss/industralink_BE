@@ -32,7 +32,7 @@ async function listWorkers({ q, status }: UserListInput) {
     id: user.id,
     role: 'worker' as const,
     name: user.name,
-    contact: user.phone ? `+91 ${toNationalPhone(user.phone)}` : '—',
+    contact: user.phone ? `+91 ${toNationalPhone(user.phone)}` : (user.email ?? '—'),
     city: user.workerProfile?.city ?? '—',
     status: user.status,
     joinedAt: user.createdAt.toISOString(),

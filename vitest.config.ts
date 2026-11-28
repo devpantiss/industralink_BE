@@ -18,6 +18,8 @@ export default defineConfig({
       CORS_ORIGINS: 'http://localhost:5173',
       // Tests never reach Firebase; they use a fake sender (tests/push.test.ts).
       FIREBASE_SERVICE_ACCOUNT: '',
+      // Tests never reach Google; they use a fake checker (tests/google-auth.test.ts).
+      GOOGLE_CLIENT_IDS: '',
     },
     globalSetup: ['./tests/global-setup.ts'],
     fileParallelism: false,

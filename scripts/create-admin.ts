@@ -3,13 +3,15 @@
  *
  *   npm run admin:create -- --name "Neha Kapoor" --email neha@industrialink.in
  *
- * Works on any database (local or live). How the admin logs in is added with the
- * real login method; until then use the test login on your own computer.
+ * Works on any database (local or live). Prints a strong one-time password once:
+ * give it to the admin privately; they log in and change it in Settings.
  */
 import 'dotenv/config';
+import { randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { prisma } from '../src/db/prisma.js';
+import { hashPassword } from '../src/lib/password.js';
 import { createAdminAccount } from '../src/modules/users/user.service.js';
 
 const { values } = parseArgs({
@@ -30,8 +32,10 @@ if (!input.success) {
 }
 
 try {
-  const admin = await createAdminAccount(input.data);
+  const password = randomBytes(12).toString('base64url');
+  const admin = await createAdminAccount({ ...input.data, passwordHash: await hashPassword(password) });
   console.warn(`Admin created: ${admin.name} <${admin.email}> (id ${admin.id})`);
+  console.warn(`One-time password: ${password}  (shown only now; change it after the first login)`);
 } catch (error) {
   console.error(`Could not create admin: ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;

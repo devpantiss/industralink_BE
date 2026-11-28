@@ -296,6 +296,221 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Real login: worker, email + password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ramesh.kumar@worker.demo\",\n  \"password\": \"demo1234\",\n  \"role\": \"worker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Real login: HR, email + password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@konark.demo\",\n  \"password\": \"demo1234\",\n  \"role\": \"employer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Wrong password (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@konark.demo\",\n  \"password\": \"wrong-one\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Right password, wrong tab (409 WRONG_ROLE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@konark.demo\",\n  \"password\": \"demo1234\",\n  \"role\": \"worker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign in with Google: request is checked (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"worker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -577,14 +792,14 @@
           "response": []
         },
         {
-          "name": "Test sign-up: new worker",
+          "name": "Sign up: new worker (email + password)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set('randomPhone', '97' + Math.floor(10000000 + Math.random() * 89999999));"
+                  "pm.collectionVariables.set('randomWorkerEmail', 'worker' + Date.now() + '@test.demo'); pm.collectionVariables.set('randomPhone', '97' + Math.floor(10000000 + Math.random() * 89999999));"
                 ]
               }
             },
@@ -612,13 +827,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/auth/dev-signup/worker",
+              "raw": "{{baseUrl}}/auth/signup/worker",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "auth",
-                "dev-signup",
+                "signup",
                 "worker"
               ]
             },
@@ -627,63 +842,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Anil Munda\",\n  \"phone\": \"{{randomPhone}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Test sign-up: new employer + company",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.collectionVariables.set('randomEmail', 'hr' + Date.now() + '@test.demo');"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/dev-signup/employer",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "dev-signup",
-                "employer"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Pooja Sahu\",\n  \"email\": \"{{randomEmail}}\",\n  \"companyName\": \"Paradip Bulk Handling\"\n}",
+              "raw": "{\n  \"name\": \"Anil Munda\",\n  \"phone\": \"{{randomPhone}}\",\n  \"email\": \"{{randomWorkerEmail}}\",\n  \"password\": \"demo1234\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -729,6 +888,270 @@
                   "type": "string"
                 }
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Worker changes their mobile number",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('randomPhone2', '96' + Math.floor(10000000 + Math.random() * 89999999));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/phone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "phone"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{newWorkerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{randomPhone2}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change password (other devices log out)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/password/change",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password",
+                "change"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{newWorkerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": \"demo1234\",\n  \"next\": \"demo12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Old password no longer works (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{randomWorkerEmail}}\",\n  \"password\": \"demo1234\",\n  \"role\": \"worker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log in with the new password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{randomWorkerEmail}}\",\n  \"password\": \"demo12345\",\n  \"role\": \"worker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign up: new employer + company",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('randomEmail', 'hr' + Date.now() + '@test.demo');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup/employer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "signup",
+                "employer"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pooja Sahu\",\n  \"email\": \"{{randomEmail}}\",\n  \"password\": \"demo1234\",\n  \"companyName\": \"Paradip Bulk Handling\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -899,14 +1322,14 @@
           "response": []
         },
         {
-          "name": "Test sign-up: worker who will delete the account",
+          "name": "Sign up: worker who will delete the account",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set('randomPhone2', '96' + Math.floor(10000000 + Math.random() * 89999999));"
+                  "pm.collectionVariables.set('randomEmail2', 'delete' + Date.now() + '@test.demo'); pm.collectionVariables.set('randomPhone3', '95' + Math.floor(10000000 + Math.random() * 89999999));"
                 ]
               }
             },
@@ -932,13 +1355,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/auth/dev-signup/worker",
+              "raw": "{{baseUrl}}/auth/signup/worker",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "auth",
-                "dev-signup",
+                "signup",
                 "worker"
               ]
             },
@@ -947,7 +1370,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Delete Me\",\n  \"phone\": \"{{randomPhone2}}\"\n}",
+              "raw": "{\n  \"name\": \"Delete Me\",\n  \"phone\": \"{{randomPhone3}}\",\n  \"email\": \"{{randomEmail2}}\",\n  \"password\": \"demo1234\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4553,6 +4976,16 @@
       "type": "string"
     },
     {
+      "key": "randomWorkerEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "randomEmail2",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "documentId",
       "value": "",
       "type": "string"
@@ -4609,6 +5042,11 @@
     },
     {
       "key": "randomPhone2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "randomPhone3",
       "value": "",
       "type": "string"
     },

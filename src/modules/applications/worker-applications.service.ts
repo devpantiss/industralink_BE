@@ -31,6 +31,12 @@ export async function applyToJob(workerId: string, jobId: string, input: ApplyIn
   const job = await prisma.job.findFirst({ where: { id: jobId, ...viewableJobWhere } });
   if (!job) throw notFound("This job was removed or doesn't exist.");
 
+  // The company calls the worker after shortlisting, so a number is needed before applying.
+  const worker = await prisma.user.findUniqueOrThrow({ where: { id: workerId }, select: { phone: true } });
+  if (!worker.phone) {
+    throw invalid('Add your mobile number first, so the company can call you.', 'PHONE_NEEDED');
+  }
+
   const isOpen = await prisma.job.count({ where: { id: jobId, ...openJobWhere() } });
   if (!isOpen) throw new AppError(410, 'JOB_CLOSED', 'This job is no longer accepting applications.');
 

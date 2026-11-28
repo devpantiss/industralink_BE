@@ -7,4 +7,5 @@ export const settingsRouter = Router();
 
 settingsRouter.get('/settings', settings.getSettings);
 settingsRouter.patch('/settings', settings.updateSettings);
+settingsRouter.put('/phone', settings.setPhone);
 settingsRouter.post('/delete', deleteAccount);
